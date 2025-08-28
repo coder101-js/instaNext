@@ -7,12 +7,16 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, KeyboardEvent, ChangeEvent } from "react";
+import { cn } from "@/lib/utils";
 
 export default function SignupPage() {
   const [step, setStep] = useState(1);
   const { toast } = useToast();
   const router = useRouter();
+  const [otp, setOtp] = useState(new Array(6).fill(""));
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +32,24 @@ export default function SignupPage() {
     });
     router.push("/login");
   };
+
+  const handleOtpChange = (element: HTMLInputElement, index: number) => {
+    if (isNaN(Number(element.value))) return;
+
+    setOtp([...otp.map((d, idx) => (idx === index ? element.value : d))]);
+
+    // Focus on next input
+    if (element.nextSibling && element.value) {
+      (element.nextSibling as HTMLInputElement).focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === "Backspace" && !otp[index] && inputRefs.current[index - 1]) {
+        inputRefs.current[index-1]!.focus();
+    }
+  }
+
 
   return (
     <Card className="w-full max-w-sm">
@@ -66,7 +88,7 @@ export default function SignupPage() {
       )}
 
       {step === 2 && (
-        <form onSubmit={handleOtpSubmit}>
+        <form onSubmit={handleOtpSubmit} className="animate-fade-in">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-headline">Verify Email</CardTitle>
             <CardDescription>Enter the OTP sent to your email.</CardDescription>
@@ -74,7 +96,23 @@ export default function SignupPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="otp">One-Time Password</Label>
-              <Input id="otp" type="text" required maxLength={6} />
+              <div className="flex justify-center gap-2">
+                {otp.map((data, index) => {
+                  return (
+                    <Input
+                      key={index}
+                      type="text"
+                      maxLength={1}
+                      className="w-12 h-12 text-center text-lg font-semibold"
+                      value={data}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleOtpChange(e.target, index)}
+                      onFocus={e => e.target.select()}
+                      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => handleOtpKeyDown(e, index)}
+                      ref={el => inputRefs.current[index] = el}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-4">
