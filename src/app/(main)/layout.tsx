@@ -43,7 +43,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                    <p className="text-muted-foreground mb-6">Let's set up your profile to get started.</p>
                    <div className="flex items-center justify-center gap-4">
                         <Button asChild>
-                           <Link href={`/profile/${user.username}`}>Go to Profile</Link>
+                           <Link href="/profile/setup">Go to Profile Setup</Link>
                         </Button>
                         <Button variant="outline" onClick={logout}>Logout</Button>
                    </div>
