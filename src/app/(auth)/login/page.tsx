@@ -14,8 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState("olivia.davis@example.com"); // Updated default to match new mock data if needed
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -47,6 +47,11 @@ export default function LoginPage() {
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+           <div className="text-right text-sm">
+            <Link href="/forgot-password" passHref>
+              <span className="text-primary hover:underline cursor-pointer">Forgot password?</span>
+            </Link>
           </div>
         </CardContent>
         <CardFooter className="flex-col gap-4">

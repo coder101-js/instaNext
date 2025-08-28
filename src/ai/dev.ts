@@ -3,3 +3,4 @@ config();
 
 import '@/ai/flows/generate-image-caption.ts';
 import '@/ai/flows/send-otp-flow.ts';
+import '@/ai/flows/send-password-reset-flow.ts';
