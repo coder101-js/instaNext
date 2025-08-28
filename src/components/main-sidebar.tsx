@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -23,7 +24,7 @@ export function MainSidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-20 flex-col border-r bg-card sm:flex">
       <nav className="flex flex-col items-center gap-4 px-2 py-4">
-        <Link href="/" className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base">
+        <Link href="/" className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary to-accent text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base">
             <span className="font-headline text-2xl">I</span>
             <span className="sr-only">InstaNext</span>
         </Link>
@@ -31,7 +32,7 @@ export function MainSidebar() {
             {navItems.map((item) => (
                 <Tooltip key={item.label}>
                     <TooltipTrigger asChild>
-                        <Link href={item.href} className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8 ${pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                        <Link href={item.href} className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8 ${pathname === item.href ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                             <item.icon className="h-5 w-5" />
                             <span className="sr-only">{item.label}</span>
                         </Link>

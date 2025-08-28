@@ -120,7 +120,7 @@ export default function SignupPage() {
       {step === 1 && (
         <form onSubmit={handleDetailsSubmit}>
           <CardHeader className="text-center">
-            <CardTitle className="text-4xl font-headline tracking-wider">InstaNext</CardTitle>
+            <CardTitle className="text-4xl font-headline tracking-wider gradient-text">InstaNext</CardTitle>
             <CardDescription>Create your account to continue.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
