@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         followers: 0,
         following: 0,
         saved: [],
-        profileSetupComplete: false, // New flag
+        profileSetupComplete: true, // User profile is ready by default now
     };
 
     await profilesCollection.insertOne({ _id: result.insertedId, ...newUserProfile });
