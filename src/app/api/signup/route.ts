@@ -14,35 +14,50 @@ export async function POST(req: NextRequest) {
     }
 
     const authDb = await connectToAuthDatabase();
-    const usersCollection = authDb.collection('users');
+    const authCollection = authDb.collection('users');
 
-    const existingUser = await usersCollection.findOne({
+    const existingAuthUser = await authCollection.findOne({
       $or: [{ email }, { username }],
     });
 
-    if (existingUser) {
+    if (existingAuthUser) {
         let message = "User already exists.";
-        if (existingUser.email === email) {
+        if (existingAuthUser.email === email) {
             message = "An account with this email already exists."
-        } else if (existingUser.username === username) {
+        } else if (existingAuthUser.username === username) {
             message = "This username is already taken."
         }
       return NextResponse.json({ message }, { status: 409 });
     }
 
+    const usersDb = await connectToUsersDatabase();
+    const profilesCollection = usersDb.collection('profiles');
+
+    const existingProfile = await profilesCollection.findOne({
+        $or: [{ email }, { username }],
+    });
+
+    if (existingProfile) {
+        let message = "User already exists.";
+        if (existingProfile.email === email) {
+            message = "An account with this email already exists."
+        } else if (existingProfile.username === username) {
+            message = "This username is already taken."
+        }
+      return NextResponse.json({ message }, { status: 409 });
+    }
+
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const result = await usersCollection.insertOne({
+    const authResult = await authCollection.insertOne({
       email,
       username,
       password: hashedPassword,
       createdAt: new Date(),
     });
     
-    // Create user profile in the users database
-    const usersDb = await connectToUsersDatabase();
-    const profilesCollection = usersDb.collection('profiles');
-    const newUserProfile: Omit<User, 'id'> = {
+    const newUserProfile: Omit<User, 'id' | '_id'> = {
         username,
         name: username, // Default name to username
         email,
@@ -52,12 +67,11 @@ export async function POST(req: NextRequest) {
         followers: 0,
         following: 0,
         saved: [],
-        profileSetupComplete: true, // User profile is ready by default now
+        profileSetupComplete: false, // User needs to complete profile setup
     };
 
-    await profilesCollection.insertOne({ _id: result.insertedId, ...newUserProfile });
+    await profilesCollection.insertOne({ _id: authResult.insertedId, ...newUserProfile });
     
-    // Send welcome email
     await sendNotification({
         email,
         subject: 'Welcome to InstaNext!',
@@ -65,7 +79,7 @@ export async function POST(req: NextRequest) {
         htmlBody: '<h3>Welcome to InstaNext!</h3><p>Thank you for signing up. We are excited to have you on board.</p>',
     });
 
-    return NextResponse.json({ message: 'User created successfully', userId: result.insertedId }, { status: 201 });
+    return NextResponse.json({ message: 'User created successfully', userId: authResult.insertedId }, { status: 201 });
 
   } catch (error) {
     console.error('Signup error:', error);

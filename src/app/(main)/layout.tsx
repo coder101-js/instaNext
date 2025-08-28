@@ -19,16 +19,29 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   if (isLoading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-         <div className="w-full max-w-md mx-auto p-4 space-y-8">
-            <div className="flex items-center space-x-4">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-[250px]" />
+      <div className="flex min-h-screen">
+        <aside className="fixed inset-y-0 left-0 z-10 hidden w-20 flex-col border-r bg-card sm:flex">
+            <div className="flex flex-col items-center gap-4 px-2 py-4">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="flex flex-col items-center gap-4 mt-4">
+                    <Skeleton className="h-8 w-8 rounded-lg" />
+                    <Skeleton className="h-8 w-8 rounded-lg" />
+                    <Skeleton className="h-8 w-8 rounded-lg" />
+                    <Skeleton className="h-8 w-8 rounded-lg" />
                 </div>
             </div>
-            <Skeleton className="h-[400px] w-full rounded-lg" />
-         </div>
+        </aside>
+         <main className="flex flex-1 flex-col sm:ml-20 pb-16 sm:pb-0 bg-secondary/40">
+            <div className="flex justify-center py-4 sm:py-8">
+                <div className="w-full max-w-md space-y-6">
+                    <div className="p-3 flex items-center gap-3">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-4 w-24" />
+                    </div>
+                    <Skeleton className="w-full aspect-square" />
+                </div>
+            </div>
+         </main>
       </div>
     );
   }

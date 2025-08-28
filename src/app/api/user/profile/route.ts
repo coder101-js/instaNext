@@ -1,13 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToUsersDatabase } from '@/lib/mongodb';
-import { verify } from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { ObjectId } from 'mongodb';
-
-interface JwtPayload {
-    id: string;
-}
 
 // This is a simplified way to get the user ID. 
 // In a real app, you'd have more robust session management.
@@ -32,10 +27,19 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, bio } = await req.json();
+    const { name, bio, username, hashtags, avatar } = await req.json();
 
-    if (typeof name !== 'string' || typeof bio !== 'string') {
-        return NextResponse.json({ message: 'Invalid name or bio' }, { status: 400 });
+    const updateData: any = {
+        profileSetupComplete: true,
+    };
+    if (name !== undefined) updateData.name = name;
+    if (bio !== undefined) updateData.bio = bio;
+    if (username !== undefined) updateData.username = username;
+    if (hashtags !== undefined) updateData.hashtags = hashtags;
+    if (avatar !== undefined) updateData.avatar = avatar;
+
+    if (Object.keys(updateData).length === 1) {
+        return NextResponse.json({ message: 'No profile data provided to update.' }, { status: 400 });
     }
     
     const db = await connectToUsersDatabase();
@@ -44,11 +48,7 @@ export async function PUT(req: NextRequest) {
     const result = await profilesCollection.updateOne(
       { _id: new ObjectId(userId) },
       { 
-        $set: { 
-            name, 
-            bio,
-            profileSetupComplete: true // Mark as complete
-        } 
+        $set: updateData
       }
     );
 

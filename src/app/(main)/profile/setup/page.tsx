@@ -11,11 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, Tag } from "lucide-react";
+import { Camera, Tag, X, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function ProfileSetupPage() {
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -49,7 +49,7 @@ export default function ProfileSetupPage() {
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if(e.key === 'Enter' || e.key === ' '){
           e.preventDefault();
-          const newTag = currentTag.trim();
+          const newTag = currentTag.trim().replace(/#/g, "");
           if(newTag && !hashtags.includes(newTag)){
               setHashtags([...hashtags, newTag]);
           }
@@ -76,7 +76,8 @@ export default function ProfileSetupPage() {
            username,
            bio,
            hashtags,
-           avatar: avatarUrl
+           avatar: avatarUrl,
+           profileSetupComplete: true
        }
 
       const response = await fetch("/api/user/profile", {
@@ -91,7 +92,7 @@ export default function ProfileSetupPage() {
       }
 
       // Re-login to get the updated user object with profileSetupComplete: true
-      await login(user.email);
+      await login(user.email, undefined); // Pass undefined for password to use re-login flow
 
       toast({ title: "Profile Setup Complete!", description: "Welcome to InstaNext!" });
       router.push("/");
@@ -109,11 +110,14 @@ export default function ProfileSetupPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4">
          <Card className="w-full max-w-md">
             <form onSubmit={handleSubmit}>
-                <CardHeader>
-                <CardTitle>Set Up Your Profile</CardTitle>
-                <CardDescription>
-                    Complete your profile to start sharing and connecting.
-                </CardDescription>
+                <CardHeader className="relative">
+                    <CardTitle>Set Up Your Profile</CardTitle>
+                    <CardDescription>
+                        Complete your profile to start sharing and connecting.
+                    </CardDescription>
+                    <Button variant="ghost" size="icon" onClick={logout} className="absolute top-4 right-4">
+                        <LogOut className="h-5 w-5" />
+                    </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
                 <div className="flex items-center justify-center">
@@ -146,7 +150,7 @@ export default function ProfileSetupPage() {
                      <div className="flex flex-wrap gap-2 rounded-md border p-2">
                         {hashtags.map(tag => (
                             <Badge key={tag} variant="secondary">
-                                {tag}
+                                #{tag}
                                 <button type="button" onClick={() => removeTag(tag)} className="ml-1 rounded-full p-0.5 hover:bg-destructive/50">
                                     <X className="h-3 w-3" />
                                 </button>
@@ -178,8 +182,3 @@ export default function ProfileSetupPage() {
     </main>
   );
 }
-
-// Dummy X icon for badge, lucide-react might not be available here initially
-const X = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-)

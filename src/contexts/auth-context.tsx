@@ -21,11 +21,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const checkUser = async () => {
+      setIsLoading(true);
       try {
         const storedUser = localStorage.getItem("insta-user");
         if (storedUser) {
           const parsedUser: User = JSON.parse(storedUser);
           // In a real app, you would want to re-validate the user session with the backend here.
+          // For now, we'll trust the localStorage and re-fetch on login.
           setUser(parsedUser);
         }
       } catch (error) {
@@ -41,11 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password?: string) => {
     setIsLoading(true);
     try {
-      // In a real app, this would be an API call to your backend.
       const response = await fetch('/api/login', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ email, password }),
+         body: JSON.stringify({ email, password }), // Password can be undefined for re-login
       });
 
       if (!response.ok) {
@@ -58,14 +59,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userToLogin) {
         localStorage.setItem("insta-user", JSON.stringify(userToLogin));
         setUser(userToLogin);
-        router.push("/");
+        if (!userToLogin.profileSetupComplete) {
+            router.push("/profile/setup");
+        } else {
+            router.push("/");
+        }
       } else {
         throw new Error("User not found after successful login response.");
       }
     } catch (error) {
       console.error(error);
-      // In a real app, you would show a toast to the user here.
-      throw error; // Re-throw to be caught by the login page
+      throw error; 
     } finally {
       setIsLoading(false);
     }

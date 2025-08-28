@@ -5,12 +5,12 @@ import { getFeedPosts, getUser } from "@/lib/data";
 export default async function HomePage() {
   const posts = await getFeedPosts();
 
-  const postsWithAuthors = posts ? await Promise.all(
+  const postsWithAuthors = await Promise.all(
     posts.map(async (post) => {
       const author = await getUser(post.userId);
       return { ...post, author };
     })
-  ) : [];
+  );
 
   return (
     <div className="flex justify-center py-4 sm:py-8">
@@ -22,7 +22,7 @@ export default async function HomePage() {
         ) : (
             <div className="text-center py-20">
                 <p className="text-muted-foreground">No posts available.</p>
-                <p className="text-sm text-muted-foreground">Create a post to see it here.</p>
+                <p className="text-sm text-muted-foreground">Follow people to see their posts.</p>
             </div>
         )}
       </div>
