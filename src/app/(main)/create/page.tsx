@@ -85,8 +85,13 @@ export default function CreatePostPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create post.');
+        let errorData;
+        try {
+            errorData = await response.json();
+        } catch (e) {
+            // Not a JSON response
+        }
+        throw new Error(errorData?.message || 'Failed to create post.');
       }
 
       toast({
