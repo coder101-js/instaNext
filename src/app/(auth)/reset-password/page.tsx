@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,8 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function ResetPasswordPage() {
+
+function ResetPasswordFormComponent() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isResetting, setIsResetting] = useState(false);
@@ -128,3 +130,34 @@ export default function ResetPasswordPage() {
   );
 }
 
+function ResetPasswordPageSkeleton() {
+    return (
+        <Card className="w-full max-w-sm">
+            <CardHeader>
+              <CardTitle><Skeleton className="h-7 w-48" /></CardTitle>
+              <CardDescription><Skeleton className="h-4 w-full" /></CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="password"><Skeleton className="h-4 w-24" /></Label>
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="confirm-password"><Skeleton className="h-4 w-32" /></Label>
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Skeleton className="h-10 w-full" />
+            </CardFooter>
+        </Card>
+    )
+}
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={<ResetPasswordPageSkeleton />}>
+            <ResetPasswordFormComponent />
+        </Suspense>
+    )
+}
