@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -8,16 +9,27 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
-  const { login } = useAuth();
-  const [email, setEmail] = useState("olivia_davis@example.com");
+  const { login, isLoading } = useAuth();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("olivia.davis@example.com"); // Updated default to match new mock data if needed
+  const [password, setPassword] = useState("password123");
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you'd validate email/password
-    login(email);
+    try {
+      await login(email, password);
+      // The router.push is handled inside the login function on success
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Please check your credentials and try again.",
+      });
+    }
   };
 
   return (
@@ -34,12 +46,12 @@ export default function LoginPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required defaultValue="password123" />
+            <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
         </CardContent>
         <CardFooter className="flex-col gap-4">
-          <Button type="submit" className="w-full">
-            Log In
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Logging in..." : "Log In"}
           </Button>
           <p className="text-xs text-muted-foreground">
             Don't have an account?{" "}
