@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useRef, KeyboardEvent, ChangeEvent } from "react";
 import { cn } from "@/lib/utils";
+import { sendOtp } from "@/ai/flows/send-otp-flow";
 
 export default function SignupPage() {
   const [step, setStep] = useState(1);
@@ -16,22 +17,39 @@ export default function SignupPage() {
   const router = useRouter();
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [email, setEmail] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [sentOtp, setSentOtp] = useState<string | null>(null);
 
-  const handleDetailsSubmit = (e: React.FormEvent) => {
+  const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you'd send an OTP here.
-    toast({
-      title: "OTP Sent (Mock)",
-      description: "For this demo, please use OTP: 123456",
-    });
-    setStep(2);
+    setIsSendingOtp(true);
+    
+    try {
+      const result = await sendOtp({ email });
+      setSentOtp(result.otp);
+      toast({
+        title: "OTP Sent",
+        description: `An OTP has been sent to ${email}.`,
+      });
+      setStep(2);
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Failed to send OTP",
+        description: "Could not send verification code. Please try again later.",
+      });
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
   
   const handleOtpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join("");
-    // Mock OTP verification
-    if (enteredOtp === "123456") {
+    
+    if (enteredOtp === sentOtp) {
       toast({
         title: "Success!",
         description: "Your account has been created. Please log in.",
@@ -77,7 +95,7 @@ export default function SignupPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="m@example.com" required />
+              <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
              <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
@@ -89,8 +107,8 @@ export default function SignupPage() {
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-4">
-            <Button type="submit" className="w-full">
-              Sign Up
+            <Button type="submit" className="w-full" disabled={isSendingOtp}>
+              {isSendingOtp ? "Sending OTP..." : "Sign Up"}
             </Button>
             <p className="text-xs text-muted-foreground">
               Already have an account?{" "}
