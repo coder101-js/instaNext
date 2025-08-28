@@ -1,7 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToAuthDatabase } from '@/lib/mongodb';
+import { connectToAuthDatabase, connectToUsersDatabase } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
+import { User } from '@/lib/data';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,10 +12,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Email, username, and password are required' }, { status: 400 });
     }
 
-    const db = await connectToAuthDatabase();
-    const usersCollection = db.collection('users');
+    const authDb = await connectToAuthDatabase();
+    const usersCollection = authDb.collection('users');
 
-    // Check if user already exists with the same email or username
     const existingUser = await usersCollection.findOne({
       $or: [{ email }, { username }],
     });
@@ -29,16 +29,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message }, { status: 409 });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert the new user
     const result = await usersCollection.insertOne({
       email,
       username,
       password: hashedPassword,
       createdAt: new Date(),
     });
+    
+    // Create user profile in the users database
+    const usersDb = await connectToUsersDatabase();
+    const profilesCollection = usersDb.collection('profiles');
+    const newUserProfile: Omit<User, 'id'> = {
+        username,
+        name: username, // Default name to username
+        email,
+        avatar: `https://i.pravatar.cc/150?u=${email}`,
+        bio: "",
+        posts: [],
+        followers: 0,
+        following: 0,
+        saved: [],
+        profileSetupComplete: false, // New flag
+    };
+
+    await profilesCollection.insertOne({ _id: result.insertedId, ...newUserProfile });
+
 
     return NextResponse.json({ message: 'User created successfully', userId: result.insertedId }, { status: 201 });
 

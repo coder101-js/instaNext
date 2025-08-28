@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -5,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { MainSidebar, MobileNav } from "@/components/main-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -31,6 +34,21 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </div>
     );
   }
+  
+  if (!user.profileSetupComplete) {
+      return (
+           <div className="flex min-h-screen items-center justify-center bg-background">
+               <div className="text-center p-8">
+                   <h1 className="text-3xl font-bold mb-2">Welcome to InstaNext!</h1>
+                   <p className="text-muted-foreground mb-6">Let's set up your profile to get started.</p>
+                   <Button asChild>
+                       <Link href={`/profile/${user.username}`}>Go to Profile</Link>
+                   </Button>
+               </div>
+           </div>
+      )
+  }
+
 
   return (
     <div className="flex min-h-screen w-full">

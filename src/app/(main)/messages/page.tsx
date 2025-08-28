@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -7,11 +8,38 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/auth-context";
-import { conversations, users, type Conversation, type Message as MessageType } from "@/lib/data";
+import { type Conversation, type Message as MessageType, type User } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Send, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+// Mock data moved here since it's no longer in /lib/data.ts
+const users: Omit<User, 'id'>[] = [
+    { name: 'Alice', username: 'alice', email: 'alice@example.com', avatar: 'https://i.pravatar.cc/150?u=alice', bio: 'Bio of Alice', posts: [], followers: 100, following: 50, saved: [], profileSetupComplete: true },
+    { name: 'Bob', username: 'bob', email: 'bob@example.com', avatar: 'https://i.pravatar.cc/150?u=bob', bio: 'Bio of Bob', posts: [], followers: 200, following: 75, saved: [], profileSetupComplete: true },
+    { name: 'Charlie', username: 'charlie', email: 'charlie@example.com', avatar: 'https://i.pravatar.cc/150?u=charlie', bio: 'Bio of Charlie', posts: [], followers: 300, following: 100, saved: [], profileSetupComplete: true },
+].map((u, i) => ({ ...u, id: `user${i + 1}` }));
+
+const conversations: Conversation[] = [
+    {
+        id: 'convo1',
+        participants: ['user1', 'user2'],
+        messages: [
+            { id: 'msg1', senderId: 'user1', text: 'Hey Bob!', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2) },
+            { id: 'msg2', senderId: 'user2', text: 'Hey Alice! How are you?', createdAt: new Date(Date.now() - 1000 * 60 * 59) },
+        ],
+    },
+    {
+        id: 'convo2',
+        participants: ['user1', 'user3'],
+        messages: [
+            { id: 'msg3', senderId: 'user3', text: 'Hi Alice, check out this cool post.', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24) },
+            { id: 'msg4', senderId: 'user1', text: 'Wow, thanks Charlie!', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 23) },
+        ],
+    },
+];
+
 
 export default function MessagesPage() {
     const { user: currentUser } = useAuth();
@@ -22,7 +50,8 @@ export default function MessagesPage() {
 
     if (!currentUser) return null;
 
-    const userConversations = conversations.filter(c => c.participants.includes(currentUser.id));
+    // We'll use the current user's ID for the demo. In a real app, this would be handled differently.
+    const userConversations = conversations.filter(c => c.participants.includes('user1'));
 
     const handleSelectConversation = (convo: Conversation) => {
         setSelectedConversation(convo);
@@ -34,7 +63,7 @@ export default function MessagesPage() {
         if(newMessage.trim() && currentUser) {
             const message: MessageType = {
                 id: `m${Date.now()}`,
-                senderId: currentUser.id,
+                senderId: 'user1', // Hardcode for demo
                 text: newMessage,
                 createdAt: new Date(),
             }
@@ -44,7 +73,7 @@ export default function MessagesPage() {
     };
     
     const getOtherParticipant = (convo: Conversation) => {
-        const otherId = convo.participants.find(p => p !== currentUser.id);
+        const otherId = convo.participants.find(p => p !== 'user1'); // Hardcode for demo
         return users.find(u => u.id === otherId);
     };
 
@@ -121,16 +150,16 @@ export default function MessagesPage() {
                             <div className="space-y-4">
                                 {messages.map(msg => (
                                     <div key={msg.id} className={cn("flex gap-2 items-end",
-                                        msg.senderId === currentUser.id ? "justify-end" : "justify-start"
+                                        msg.senderId === 'user1' ? "justify-end" : "justify-start"
                                     )}>
                                         <div className={cn("rounded-lg px-3 py-2 max-w-xs md:max-w-md",
-                                            msg.senderId === currentUser.id 
+                                            msg.senderId === 'user1' 
                                                 ? "bg-primary text-primary-foreground" 
                                                 : "bg-secondary"
                                         )}>
                                             <p>{msg.text}</p>
                                             <p className={cn("text-xs opacity-70 mt-1",
-                                             msg.senderId === currentUser.id ? "text-right" : "text-left")}>
+                                             msg.senderId === 'user1' ? "text-right" : "text-left")}>
                                                 {format(msg.createdAt, "p")}
                                             </p>
                                         </div>

@@ -1,3 +1,4 @@
+
 import { getUserByUsername, getPostsForUser, getSavedPosts, getUser } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Grid3x3, Bookmark } from "lucide-react";
 import { PostGrid } from "@/components/post-grid";
+import { ProfileEditButton } from "./edit-profile-button";
 
 export default async function ProfilePage({ params }: { params: { username: string } }) {
   const user = await getUserByUsername(params.username);
@@ -26,7 +28,7 @@ export default async function ProfilePage({ params }: { params: { username: stri
         <div className="space-y-4 text-center sm:text-left">
           <div className="flex items-center gap-4 justify-center sm:justify-start">
             <h1 className="text-2xl font-light">{user.username}</h1>
-            <Button variant="secondary" size="sm">Edit Profile</Button>
+            <ProfileEditButton user={user} />
           </div>
           <div className="flex gap-8 text-sm justify-center sm:justify-start">
             <p><span className="font-semibold">{userPosts.length}</span> posts</p>

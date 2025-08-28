@@ -1,3 +1,4 @@
+
 // This file is no longer the source of truth for data.
 // It now defines types that are used across the application.
 // Data fetching is handled by API routes.
@@ -13,6 +14,7 @@ export type User = {
   followers: number;
   following: number;
   saved: string[];
+  profileSetupComplete: boolean;
 };
 
 export type Post = {
