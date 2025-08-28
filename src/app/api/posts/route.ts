@@ -1,14 +1,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToFeedDatabase } from '@/lib/mongodb';
-import { cookies } from 'next/headers';
 import { ObjectId } from 'mongodb';
 
 async function getUserIdFromRequest(req: NextRequest) {
     try {
-        const userCookie = cookies().get('insta-user');
-        if (userCookie) {
-            const user = JSON.parse(userCookie.value);
+        const userHeader = req.headers.get('x-user-payload');
+        if (userHeader) {
+            const user = JSON.parse(userHeader);
             return user.id;
         }
         return null;

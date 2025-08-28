@@ -19,11 +19,15 @@ import { User } from "@/lib/data";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Camera } from "lucide-react";
 
 export function ProfileEditButton({ user }: { user: User }) {
-  const { user: currentUser, login } = useAuth();
+  const { user: currentUser, setUser: setAuthUser } = useAuth();
   const [name, setName] = useState(user.name);
   const [bio, setBio] = useState(user.bio);
+  const [avatarPreview, setAvatarPreview] = useState(user.avatar);
+  const [avatarDataUri, setAvatarDataUri] = useState<string | null>(user.avatar);
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -33,15 +37,37 @@ export function ProfileEditButton({ user }: { user: User }) {
     return <Button variant="secondary" size="sm">Follow</Button>;
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+        setAvatarDataUri(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      const profileData = {
+          name,
+          bio,
+          avatar: avatarDataUri
+      }
+      const userPayload = localStorage.getItem('insta-user');
+
       const response = await fetch("/api/user/profile", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, bio }),
+        headers: { 
+          "Content-Type": "application/json",
+          "X-User-Payload": userPayload || '',
+        },
+        body: JSON.stringify(profileData),
       });
 
       if (!response.ok) {
@@ -49,8 +75,11 @@ export function ProfileEditButton({ user }: { user: User }) {
         throw new Error(errorData.message || "Failed to update profile.");
       }
 
-      // Re-login to get the updated user object in the context
-      await login(currentUser.email);
+      const updatedUser = await response.json();
+      
+      // Update user in auth context and localStorage
+      setAuthUser(updatedUser);
+      localStorage.setItem('insta-user', JSON.stringify(updatedUser));
 
       toast({ title: "Profile Updated" });
       setOpen(false);
@@ -79,6 +108,18 @@ export function ProfileEditButton({ user }: { user: User }) {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+             <div className="flex items-center justify-center">
+                <div className="relative">
+                    <Avatar className="w-24 h-24 border-2">
+                        <AvatarImage src={avatarPreview || undefined} alt={name} />
+                        <AvatarFallback>{name?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <Label htmlFor="avatar-edit-upload" className="absolute -right-2 -bottom-2 cursor-pointer rounded-full bg-primary p-2 text-primary-foreground hover:bg-primary/80">
+                        <Camera className="h-4 w-4"/>
+                    </Label>
+                    <Input id="avatar-edit-upload" type="file" className="sr-only" onChange={handleFileChange} accept="image/*" />
+                </div>
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 Name

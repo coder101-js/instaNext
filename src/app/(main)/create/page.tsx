@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -69,9 +70,13 @@ export default function CreatePostPage() {
     }
     setIsSharing(true);
     try {
+      const userPayload = localStorage.getItem('insta-user');
       const response = await fetch('/api/posts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-User-Payload': userPayload || '',
+        },
         body: JSON.stringify({
           image: imageDataUri,
           caption: caption,

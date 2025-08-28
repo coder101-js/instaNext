@@ -15,7 +15,7 @@ import { Camera, Tag, X, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function ProfileSetupPage() {
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, setUser: setAuthUser } = useAuth(); // Get setUser from context
   const router = useRouter();
   const { toast } = useToast();
 
@@ -25,7 +25,7 @@ export default function ProfileSetupPage() {
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarDataUri, setAvatarDataUri] = useState<string | null>(user?.avatar || null);
   const [isLoading, setIsLoading] = useState(false);
 
   if (!user) {
@@ -37,10 +37,10 @@ export default function ProfileSetupPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
+        setAvatarDataUri(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -68,8 +68,8 @@ export default function ProfileSetupPage() {
 
     try {
        // In a real implementation, you would first upload the avatarFile to a storage service
-       // and get back a URL. For this example, we'll just simulate it.
-       const avatarUrl = avatarPreview;
+       // and get back a URL. For this example, we'll just pass the data URI.
+       const avatarUrl = avatarDataUri;
        
        const profileData = {
            name,
@@ -79,10 +79,15 @@ export default function ProfileSetupPage() {
            avatar: avatarUrl,
            profileSetupComplete: true
        }
+      
+      const userPayload = localStorage.getItem('insta-user');
 
       const response = await fetch("/api/user/profile", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+            "Content-Type": "application/json",
+            "X-User-Payload": userPayload || '',
+        },
         body: JSON.stringify(profileData),
       });
 
@@ -90,9 +95,12 @@ export default function ProfileSetupPage() {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to update profile.");
       }
-
-      // Re-login to get the updated user object with profileSetupComplete: true
-      await login(user.email, undefined); // Pass undefined for password to use re-login flow
+      
+      const updatedUser = await response.json();
+      
+      // Update user in auth context and localStorage
+      setAuthUser(updatedUser);
+      localStorage.setItem('insta-user', JSON.stringify(updatedUser));
 
       toast({ title: "Profile Setup Complete!", description: "Welcome to InstaNext!" });
       router.push("/");
