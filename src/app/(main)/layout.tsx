@@ -10,7 +10,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -37,13 +37,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   
   if (!user.profileSetupComplete) {
       return (
-           <div className="flex min-h-screen items-center justify-center bg-background">
-               <div className="text-center p-8">
+           <div className="flex min-h-screen flex-col items-center justify-center bg-background text-center p-8">
+               <div>
                    <h1 className="text-3xl font-bold mb-2">Welcome to <span className="gradient-text">InstaNext</span>!</h1>
                    <p className="text-muted-foreground mb-6">Let's set up your profile to get started.</p>
-                   <Button asChild>
-                       <Link href={`/profile/${user.username}`}>Go to Profile</Link>
-                   </Button>
+                   <div className="flex items-center justify-center gap-4">
+                        <Button asChild>
+                           <Link href={`/profile/${user.username}`}>Go to Profile</Link>
+                        </Button>
+                        <Button variant="outline" onClick={logout}>Logout</Button>
+                   </div>
                </div>
            </div>
       )
