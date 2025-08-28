@@ -14,12 +14,12 @@ import { Send, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Mock data moved here since it's no longer in /lib/data.ts
-const users: Omit<User, 'id'>[] = [
-    { name: 'Alice', username: 'alice', email: 'alice@example.com', avatar: 'https://i.pravatar.cc/150?u=alice', bio: 'Bio of Alice', posts: [], followers: 100, following: 50, saved: [], profileSetupComplete: true },
-    { name: 'Bob', username: 'bob', email: 'bob@example.com', avatar: 'https://i.pravatar.cc/150?u=bob', bio: 'Bio of Bob', posts: [], followers: 200, following: 75, saved: [], profileSetupComplete: true },
-    { name: 'Charlie', username: 'charlie', email: 'charlie@example.com', avatar: 'https://i.pravatar.cc/150?u=charlie', bio: 'Bio of Charlie', posts: [], followers: 300, following: 100, saved: [], profileSetupComplete: true },
-].map((u, i) => ({ ...u, id: `user${i + 1}` }));
+// Mock data is now local to this component.
+const users: User[] = [
+    { id: 'user1', name: 'Alice', username: 'alice', email: 'alice@example.com', avatar: 'https://i.pravatar.cc/150?u=alice', bio: 'Bio of Alice', posts: [], followers: 100, following: 50, saved: [], profileSetupComplete: true },
+    { id: 'user2', name: 'Bob', username: 'bob', email: 'bob@example.com', avatar: 'https://i.pravatar.cc/150?u=bob', bio: 'Bio of Bob', posts: [], followers: 200, following: 75, saved: [], profileSetupComplete: true },
+    { id: 'user3', name: 'Charlie', username: 'charlie', email: 'charlie@example.com', avatar: 'https://i.pravatar.cc/150?u=charlie', bio: 'Bio of Charlie', posts: [], followers: 300, following: 100, saved: [], profileSetupComplete: true },
+];
 
 const conversations: Conversation[] = [
     {
