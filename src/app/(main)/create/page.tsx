@@ -17,6 +17,7 @@ export default function CreatePostPage() {
   const [imageDataUri, setImageDataUri] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -62,13 +63,43 @@ export default function CreatePostPage() {
     }
   };
 
-  const handleShare = () => {
-    // Mock sharing
-     toast({
-        title: "Post Shared!",
-        description: "Your post is now live (on this mock app).",
+  const handleShare = async () => {
+    if (!imageDataUri || !caption) {
+      return;
+    }
+    setIsSharing(true);
+    try {
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: imageDataUri,
+          caption: caption,
+          aiHint: 'user uploaded', // Placeholder AI hint
+        }),
       });
-     router.push("/");
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create post.');
+      }
+
+      toast({
+        title: "Post Shared!",
+        description: "Your post is now live.",
+      });
+      router.push("/");
+    } catch (error) {
+       console.error(error);
+       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+       toast({
+        variant: "destructive",
+        title: "Error Sharing Post",
+        description: errorMessage,
+      });
+    } finally {
+        setIsSharing(false);
+    }
   }
 
   return (
@@ -105,7 +136,9 @@ export default function CreatePostPage() {
               <Sparkles className="mr-2 h-4 w-4" />
               {isGenerating ? "Generating..." : "Generate AI Caption"}
             </Button>
-            <Button onClick={handleShare} disabled={!imagePreview || !caption}>Share Post</Button>
+            <Button onClick={handleShare} disabled={!imagePreview || !caption || isSharing}>
+                {isSharing ? "Sharing..." : "Share Post"}
+            </Button>
           </div>
         </CardContent>
       </Card>

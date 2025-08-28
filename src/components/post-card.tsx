@@ -42,6 +42,7 @@ export function PostCard({ post, author }: PostCardProps) {
       const commentToAdd: CommentType = {
         id: `c${Date.now()}`,
         userId: currentUser.id,
+        username: currentUser.username,
         text: newComment,
         createdAt: new Date(),
       };
@@ -114,8 +115,7 @@ export function PostCard({ post, author }: PostCardProps) {
                 {comments.slice(0, 2).map(comment => (
                      <p key={comment.id} className="text-sm">
                         <Link href={`/profile/${comment.userId}`} className="font-semibold hover:underline">
-                            {/* In a real app we'd fetch the commenter's username */}
-                            {(post.comments.find(c => c.id === comment.id) as CommentType)?.userId}
+                            {comment.username}
                         </Link>{" "}
                         {comment.text}
                     </p>

@@ -7,7 +7,7 @@ import { ObjectId } from 'mongodb';
 // Data fetching is handled by API routes.
 
 export type User = {
-  _id: ObjectId;
+  _id?: ObjectId;
   id: string;
   username: string;
   name: string;
@@ -22,7 +22,7 @@ export type User = {
 };
 
 export type Post = {
-  _id: ObjectId;
+  _id?: ObjectId;
   id: string;
   userId: string;
   image: string;
@@ -36,6 +36,7 @@ export type Post = {
 export type Comment = {
   id: string;
   userId: string;
+  username: string;
   text: string;
   createdAt: Date;
 };
@@ -53,46 +54,48 @@ export type Conversation = {
   messages: Message[];
 };
 
+const serializeObject = (obj: any) => {
+    if (!obj) return null;
+    const newObj = JSON.parse(JSON.stringify(obj));
+    if (obj._id) {
+        newObj.id = obj._id.toString();
+        delete newObj._id;
+    }
+    return newObj;
+}
+
+
 // API-like functions to fetch data
 export const getUser = async (userId: string): Promise<User | null> => {
   if (!ObjectId.isValid(userId)) return null;
   const db = await connectToUsersDatabase();
   const user = await db.collection('profiles').findOne({ _id: new ObjectId(userId) });
-  if (user) {
-    return { ...user, id: user._id.toString() } as User;
-  }
-  return null;
+  return serializeObject(user);
 }
 
 export const getUserByUsername = async (username: string): Promise<User | null> => {
    const db = await connectToUsersDatabase();
    const user = await db.collection('profiles').findOne({ username });
-   if (user) {
-    return { ...user, id: user._id.toString() } as User;
-  }
-   return null;
+   return serializeObject(user);
 }
 
 export const getPost = async (postId: string): Promise<Post | null> => {
     if (!ObjectId.isValid(postId)) return null;
    const db = await connectToFeedDatabase();
    const post = await db.collection('posts').findOne({ _id: new ObjectId(postId) });
-   if (post) {
-    return { ...post, id: post._id.toString() } as Post;
-  }
-   return null;
+   return serializeObject(post);
 }
 
 export const getPostsForUser = async (userId: string): Promise<Post[]> => {
   const db = await connectToFeedDatabase();
   const posts = await db.collection('posts').find({ userId }).sort({ createdAt: -1 }).toArray();
-  return posts.map(p => ({ ...p, id: p._id.toString() })) as Post[];
+  return posts.map(serializeObject) as Post[];
 }
 
 export const getFeedPosts = async (): Promise<Post[]> => {
   const db = await connectToFeedDatabase();
   const posts = await db.collection('posts').find().sort({ createdAt: -1 }).limit(20).toArray();
-  return posts.map(p => ({ ...p, id: p._id.toString() })) as Post[];
+  return posts.map(serializeObject) as Post[];
 }
 
 export const getSavedPosts = async (userId: string): Promise<Post[]> => {
@@ -103,7 +106,7 @@ export const getSavedPosts = async (userId: string): Promise<Post[]> => {
   const postIds = user.saved.map(id => new ObjectId(id));
   const posts = await db.collection('posts').find({ _id: { $in: postIds } }).sort({ createdAt: -1 }).toArray();
   
-  return posts.map(p => ({ ...p, id: p._id.toString() })) as Post[];
+  return posts.map(serializeObject) as Post[];
 }
 
 export const getConversationsForUser = async (userId: string): Promise<Conversation[]> => {
