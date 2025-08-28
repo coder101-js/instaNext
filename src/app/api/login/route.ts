@@ -4,6 +4,7 @@ import { connectToAuthDatabase, connectToUsersDatabase } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import { ObjectId } from 'mongodb';
+import { sendNotification } from '@/ai/flows/send-notification-flow';
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,6 +38,14 @@ export async function POST(req: NextRequest) {
         // This case should ideally not happen if signup is working correctly
         return NextResponse.json({ message: 'User profile not found.' }, { status: 404 });
     }
+    
+    // Send login notification email
+    await sendNotification({
+        email,
+        subject: 'Successful Login to InstaNext',
+        textBody: 'Your account was just accessed. If this was not you, please secure your account immediately.',
+        htmlBody: '<p>Your account was just accessed. If this was not you, please secure your account immediately.</p>',
+    });
 
     const userToReturn = {
         id: userProfile._id.toString(),
