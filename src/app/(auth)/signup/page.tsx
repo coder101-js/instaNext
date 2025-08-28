@@ -26,14 +26,11 @@ export default function SignupPage() {
     setIsSendingOtp(true);
     
     try {
-      // In a real app, we would call our backend to send the OTP.
-      // The flow now simulates sending an OTP and returns a hardcoded one for testing.
-      // const result = await sendOtp({ email }); 
-      const result = { otp: "123456" }; // Mock for frontend testing
+      const result = await sendOtp({ email }); 
       setSentOtp(result.otp);
       toast({
-        title: "OTP Sent (Mock)",
-        description: `An OTP has been sent to ${email}. For this demo, the OTP is ${result.otp}`,
+        title: "OTP Sent",
+        description: `An OTP has been sent to ${email}.`,
       });
       setStep(2);
     } catch (error) {
@@ -52,8 +49,7 @@ export default function SignupPage() {
     e.preventDefault();
     const enteredOtp = otp.join("");
     
-    // We are now checking against the mock OTP
-    if (enteredOtp === "123456") {
+    if (enteredOtp === sentOtp) {
       toast({
         title: "Success!",
         description: "Your account has been created. Please log in.",
