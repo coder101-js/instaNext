@@ -17,8 +17,14 @@ export default function SignupPage() {
   const router = useRouter();
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // State to hold all form data
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [sentOtp, setSentOtp] = useState<string | null>(null);
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
@@ -45,24 +51,49 @@ export default function SignupPage() {
     }
   };
   
-  const handleOtpSubmit = (e: React.FormEvent) => {
+  const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join("");
     
-    if (enteredOtp === sentOtp) {
-      toast({
-        title: "Success!",
-        description: "Your account has been created. Please log in.",
-      });
-      router.push("/login");
-    } else {
-      toast({
+    if (enteredOtp !== sentOtp) {
+       toast({
         variant: "destructive",
         title: "Invalid OTP",
         description: "The OTP you entered is incorrect. Please try again.",
       });
       setOtp(new Array(6).fill(""));
       inputRefs.current[0]?.focus();
+      return;
+    }
+
+    setIsCreatingAccount(true);
+    try {
+      const response = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, username, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create account.');
+      }
+
+      toast({
+        title: "Success!",
+        description: "Your account has been created. Please log in.",
+      });
+      router.push("/login");
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      toast({
+        variant: "destructive",
+        title: "Signup Failed",
+        description: errorMessage,
+      });
+    } finally {
+      setIsCreatingAccount(false);
     }
   };
 
@@ -99,11 +130,11 @@ export default function SignupPage() {
             </div>
              <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" type="text" placeholder="your_username" required />
+              <Input id="username" type="text" placeholder="your_username" required value={username} onChange={(e) => setUsername(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required />
+              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-4">
@@ -149,10 +180,10 @@ export default function SignupPage() {
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-4">
-            <Button type="submit" className="w-full">
-              Verify
+            <Button type="submit" className="w-full" disabled={isCreatingAccount}>
+              {isCreatingAccount ? "Creating Account..." : "Verify & Create Account"}
             </Button>
-             <Button variant="link" size="sm" onClick={() => setStep(1)}>Back</Button>
+             <Button variant="link" size="sm" onClick={() => setStep(1)} disabled={isCreatingAccount}>Back</Button>
           </CardFooter>
         </form>
       )}
