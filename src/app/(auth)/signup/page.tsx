@@ -17,20 +17,35 @@ export default function SignupPage() {
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // In a real app, you'd send an OTP here.
+    toast({
+      title: "OTP Sent (Mock)",
+      description: "For this demo, please use OTP: 123456",
+    });
     setStep(2);
   };
   
   const handleOtpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const enteredOtp = otp.join("");
     // Mock OTP verification
-    toast({
-      title: "Success!",
-      description: "Your account has been created. Please log in.",
-    });
-    router.push("/login");
+    if (enteredOtp === "123456") {
+      toast({
+        title: "Success!",
+        description: "Your account has been created. Please log in.",
+      });
+      router.push("/login");
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Invalid OTP",
+        description: "The OTP you entered is incorrect. Please try again.",
+      });
+      setOtp(new Array(6).fill(""));
+      inputRefs.current[0]?.focus();
+    }
   };
 
   const handleOtpChange = (element: HTMLInputElement, index: number) => {
