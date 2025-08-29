@@ -1,7 +1,7 @@
 
 import { conversationalSearch } from '@/ai/flows/conversational-search-flow';
 import { NextRequest, NextResponse } from 'next/server';
-import { stream } from 'genkit/next';
+import { stream } from '@genkit-ai/next';
 
 export async function POST(req: NextRequest) {
   try {
