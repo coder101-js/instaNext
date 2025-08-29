@@ -15,6 +15,8 @@ import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { io, Socket } from "socket.io-client";
+import { ClientToServerEvents, ServerToClientEvents } from "@/lib/socket-types";
 
 export default function MessagesPage() {
     const { user: currentUser, token } = useAuth();
@@ -27,6 +29,52 @@ export default function MessagesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+
+    // Effect to initialize and clean up socket connection
+    useEffect(() => {
+        if (!currentUser) return;
+    
+        // Connect to the socket server
+        fetch('/api/socket'); // This initializes the socket server on the backend
+    
+        const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io({
+            path: '/api/socket_io',
+            addTrailingSlash: false
+        });
+
+        socketRef.current = socket;
+    
+        socket.on('connect', () => {
+            console.log('Socket connected:', socket.id);
+            socket.emit('joinRoom', currentUser.id);
+        });
+    
+        socket.on('receiveMessage', (message: MessageType) => {
+            if (selectedConversation && message.senderId !== currentUser.id) {
+                setMessages(prev => [...prev, message]);
+                
+                // Update conversation list with new message
+                setConversations(prevConvos => prevConvos.map(c => {
+                    if (c.id === selectedConversation.id) {
+                       const updatedMessages = [...(c.messages || []), message];
+                       return {...c, messages: updatedMessages, updatedAt: new Date()};
+                    }
+                    return c;
+                 }).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                );
+            }
+        });
+    
+        socket.on('disconnect', () => {
+            console.log('Socket disconnected');
+        });
+    
+        return () => {
+            socket.disconnect();
+        };
+    }, [currentUser, selectedConversation]);
+
 
     useEffect(() => {
         const fetchConversations = async () => {
@@ -39,7 +87,7 @@ export default function MessagesPage() {
                 if (res.ok) {
                     const data = await res.json();
                     setConversations(data);
-                    if (data.length > 0) {
+                    if (data.length > 0 && !selectedConversation) {
                         handleSelectConversation(data[0]);
                     }
                 }
@@ -50,14 +98,12 @@ export default function MessagesPage() {
             }
         };
         fetchConversations();
-    }, [token]);
+    }, [token, selectedConversation]);
 
     useEffect(() => {
-        // Scroll to bottom when new messages are added
         if (scrollAreaRef.current) {
             scrollAreaRef.current.scrollTo({
                 top: scrollAreaRef.current.scrollHeight,
-                behavior: 'smooth',
             });
         }
     }, [messages]);
@@ -69,7 +115,7 @@ export default function MessagesPage() {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim() || !currentUser || !token || !selectedConversation) return;
+        if (!newMessage.trim() || !currentUser || !token || !selectedConversation || !socketRef.current) return;
 
         const otherParticipant = selectedConversation.participants.find(p => p.id !== currentUser.id);
         if (!otherParticipant) return;
@@ -84,6 +130,7 @@ export default function MessagesPage() {
         };
 
         setMessages(prev => [...prev, optimisticMessage]);
+        const messageToSend = newMessage;
         setNewMessage("");
 
         try {
@@ -95,19 +142,22 @@ export default function MessagesPage() {
                 },
                 body: JSON.stringify({
                     recipientId: otherParticipant.id,
-                    text: newMessage
+                    text: messageToSend
                 })
             });
 
             if (response.ok) {
                 const { newMessage: savedMessage } = await response.json();
-                 setMessages(prev => prev.map(m => m.id === optimisticMessage.id ? savedMessage : m));
+                socketRef.current.emit('sendMessage', savedMessage, otherParticipant.id);
+                setMessages(prev => prev.map(m => m.id === optimisticMessage.id ? savedMessage : m));
                  setConversations(prev => prev.map(c => {
                     if (c.id === selectedConversation.id) {
-                       return {...c, messages: [...c.messages, savedMessage]};
+                       const updatedMessages = [...c.messages.filter(m => m.id !== optimisticMessage.id), savedMessage];
+                       return {...c, messages: updatedMessages, updatedAt: new Date() };
                     }
                     return c;
-                 }));
+                 }).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                );
             } else {
                  setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
             }
@@ -128,6 +178,7 @@ export default function MessagesPage() {
     }
 
     if (isMobile) {
+        // Mobile view remains largely the same, maybe implement a chat detail view later
         return (
              <div className="h-full">
                 <CardHeader>
