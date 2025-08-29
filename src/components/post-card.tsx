@@ -7,13 +7,56 @@ import { Heart, MessageCircle, Bookmark, MoreHorizontal, Send } from "lucide-rea
 import type { Post, User, Comment as CommentType } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useOptimistic, startTransition } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
 import { formatDistanceToNow } from "date-fns";
 import { VerifiedBadge } from "./verified-badge";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+
+async function togglePostLike(postId: string, token: string) {
+  const response = await fetch(`/api/posts/${postId}/like`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to toggle like.');
+  }
+  return await response.json();
+}
+
+async function togglePostSave(postId: string, token: string) {
+  const response = await fetch(`/api/posts/${postId}/save`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to toggle save.');
+  }
+  return await response.json();
+}
+
+async function addCommentToPost(postId: string, text: string, token: string) {
+  const response = await fetch(`/api/posts/${postId}/comment`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` 
+    },
+    body: JSON.stringify({ text })
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to add comment.');
+  }
+  return await response.json();
+}
+
 
 interface PostCardProps {
   post: Post;
@@ -21,36 +64,78 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, author }: PostCardProps) {
-  const { user: currentUser } = useAuth();
-  const [isLiked, setIsLiked] = useState(currentUser ? post.likes.includes(currentUser.id) : false);
-  const [isSaved, setIsSaved] = useState(currentUser ? currentUser.saved.includes(post.id) : false);
-  const [likesCount, setLikesCount] = useState(post.likes.length);
+  const { user: currentUser, token, updateUserAndToken } = useAuth();
+  const { toast } = useToast();
+
+  const [optimisticLikes, toggleOptimisticLike] = useOptimistic(
+    post.likes,
+    (state, userId: string) => state.includes(userId) ? state.filter(id => id !== userId) : [...state, userId]
+  );
+  
+  const [optimisticIsSaved, toggleOptimisticSave] = useOptimistic(
+     currentUser?.saved?.includes(post.id) ?? false,
+    (state) => !state
+  );
+
   const [comments, setComments] = useState<CommentType[]>(post.comments);
   const [newComment, setNewComment] = useState("");
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
-    // In real app, you would also make an API call here.
+  const isLiked = currentUser ? optimisticLikes.includes(currentUser.id) : false;
+
+
+  const handleLike = async () => {
+    if (!currentUser || !token) return;
+    startTransition(() => {
+        toggleOptimisticLike(currentUser.id);
+    });
+    try {
+        await togglePostLike(post.id, token);
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({ variant: "destructive", title: "Error", description: errorMessage });
+    }
   };
 
-  const handleSave = () => {
-    setIsSaved(!isSaved);
-     // In real app, you would also make an API call here.
+  const handleSave = async () => {
+     if (!currentUser || !token) return;
+     startTransition(() => {
+        toggleOptimisticSave(null);
+     });
+     try {
+        const { updatedUser } = await togglePostSave(post.id, token);
+        updateUserAndToken(updatedUser);
+     } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({ variant: "destructive", title: "Error", description: errorMessage });
+     }
   };
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newComment.trim() && currentUser) {
-      const commentToAdd: CommentType = {
-        id: `c${Date.now()}`,
+    if (!newComment.trim() || !currentUser || !token) return;
+
+    const originalComments = comments;
+    const optimisticComment: CommentType = {
+        id: `optimistic-${Date.now()}`,
         userId: currentUser.id,
         username: currentUser.username,
         text: newComment,
         createdAt: new Date(),
-      };
-      setComments([commentToAdd, ...comments]);
-      setNewComment("");
+    };
+    
+    setComments([optimisticComment, ...comments]);
+    setNewComment("");
+
+    try {
+        const { newComment: savedComment } = await addCommentToPost(post.id, newComment, token);
+        setComments(currentComments => 
+            currentComments.map(c => c.id === optimisticComment.id ? savedComment : c)
+        );
+
+    } catch (error) {
+        setComments(originalComments);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({ variant: "destructive", title: "Error", description: errorMessage });
     }
   };
 
@@ -103,12 +188,12 @@ export function PostCard({ post, author }: PostCardProps) {
             <span className="sr-only">Share</span>
           </Button>
           <Button variant="ghost" size="icon" onClick={handleSave} className="h-10 w-10 ml-auto -mr-2">
-            <Bookmark className={`h-6 w-6 transition-all ${isSaved ? "fill-foreground" : ""}`} />
+            <Bookmark className={`h-6 w-6 transition-all ${optimisticIsSaved ? "fill-foreground" : ""}`} />
             <span className="sr-only">Save</span>
           </Button>
         </div>
         
-        <p className="text-sm font-semibold">{likesCount.toLocaleString()} likes</p>
+        <p className="text-sm font-semibold">{optimisticLikes.length.toLocaleString()} likes</p>
 
         <p className="text-sm mt-2">
             <Link href={`/profile/${author.username}`} className="font-semibold hover:underline">
