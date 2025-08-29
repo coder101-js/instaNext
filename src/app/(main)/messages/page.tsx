@@ -8,19 +8,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/auth-context";
-import { type Conversation, type Message as MessageType } from "@/lib/data";
+import { type Conversation, type Message as MessageType, User } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Send, MessageSquare, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { io, Socket } from "socket.io-client";
 import { ClientToServerEvents, ServerToClientEvents } from "@/lib/socket-types";
 
+// Mock data for initial users/conversations since we removed the DB backend for this
+const MOCK_USERS: User[] = [
+    { id: 'user-1', name: 'Alice', username: 'alice', email: '', avatar: 'https://i.pravatar.cc/150?u=alice', bio: '', posts: [], followers: [], following: [], saved: [] },
+    { id: 'user-2', name: 'Bob', username: 'bob', email: '', avatar: 'https://i.pravatar.cc/150?u=bob', bio: '', posts: [], followers: [], following: [], saved: [] },
+    { id: 'user-3', name: 'Charlie', username: 'charlie', email: '', avatar: 'https://i.pravatar.cc/150?u=charlie', bio: '', posts: [], followers: [], following: [], saved: [] },
+];
+
+
 export default function MessagesPage() {
-    const { user: currentUser, token } = useAuth();
-    const router = useRouter();
+    const { user: currentUser } = useAuth();
     const isMobile = useIsMobile();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -30,6 +36,27 @@ export default function MessagesPage() {
     const [isSending, setIsSending] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+
+    // Initialize mock conversations
+    useEffect(() => {
+        if (!currentUser) return;
+        
+        const otherUsers = MOCK_USERS.filter(u => u.id !== currentUser.id);
+        const mockConvos = otherUsers.map((user, index) => ({
+            id: `convo-${index + 1}`,
+            participants: [currentUser, user],
+            messages: [],
+            updatedAt: new Date()
+        }));
+
+        setConversations(mockConvos);
+        if (mockConvos.length > 0) {
+            handleSelectConversation(mockConvos[0]);
+        }
+        setIsLoading(false);
+
+    }, [currentUser]);
+
 
     // Effect to initialize and clean up socket connection
     useEffect(() => {
@@ -51,19 +78,10 @@ export default function MessagesPage() {
         });
     
         socket.on('receiveMessage', (message: MessageType) => {
-            if (selectedConversation && message.senderId !== currentUser.id) {
-                setMessages(prev => [...prev, message]);
-                
-                // Update conversation list with new message
-                setConversations(prevConvos => prevConvos.map(c => {
-                    if (c.id === selectedConversation.id) {
-                       const updatedMessages = [...(c.messages || []), message];
-                       return {...c, messages: updatedMessages, updatedAt: new Date()};
-                    }
-                    return c;
-                 }).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                );
-            }
+             // Only update if the message belongs to the currently selected conversation
+             if (selectedConversation && (message.senderId === selectedConversation.participants[0].id || message.senderId === selectedConversation.participants[1].id)) {
+                 setMessages(prev => [...prev, message]);
+             }
         });
     
         socket.on('disconnect', () => {
@@ -75,30 +93,6 @@ export default function MessagesPage() {
         };
     }, [currentUser, selectedConversation]);
 
-
-    useEffect(() => {
-        const fetchConversations = async () => {
-            if (!token) return;
-            setIsLoading(true);
-            try {
-                const res = await fetch('/api/messages/conversations', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setConversations(data);
-                    if (data.length > 0 && !selectedConversation) {
-                        handleSelectConversation(data[0]);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch conversations", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchConversations();
-    }, [token, selectedConversation]);
 
     useEffect(() => {
         if (scrollAreaRef.current) {
@@ -115,58 +109,27 @@ export default function MessagesPage() {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim() || !currentUser || !token || !selectedConversation || !socketRef.current) return;
+        if (!newMessage.trim() || !currentUser || !selectedConversation || !socketRef.current) return;
 
         const otherParticipant = selectedConversation.participants.find(p => p.id !== currentUser.id);
         if (!otherParticipant) return;
 
         setIsSending(true);
 
-        const optimisticMessage: MessageType = {
-            id: `optimistic-${Date.now()}`,
+        const messageToSend: MessageType = {
+            id: `msg-${Date.now()}`,
             senderId: currentUser.id,
             text: newMessage,
             createdAt: new Date(),
         };
 
-        setMessages(prev => [...prev, optimisticMessage]);
-        const messageToSend = newMessage;
+        // Emit message via socket
+        socketRef.current.emit('sendMessage', messageToSend, otherParticipant.id);
+
+        // Update local state immediately
+        setMessages(prev => [...prev, messageToSend]);
         setNewMessage("");
-
-        try {
-            const response = await fetch('/api/messages/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    recipientId: otherParticipant.id,
-                    text: messageToSend
-                })
-            });
-
-            if (response.ok) {
-                const { newMessage: savedMessage } = await response.json();
-                socketRef.current.emit('sendMessage', savedMessage, otherParticipant.id);
-                setMessages(prev => prev.map(m => m.id === optimisticMessage.id ? savedMessage : m));
-                 setConversations(prev => prev.map(c => {
-                    if (c.id === selectedConversation.id) {
-                       const updatedMessages = [...c.messages.filter(m => m.id !== optimisticMessage.id), savedMessage];
-                       return {...c, messages: updatedMessages, updatedAt: new Date() };
-                    }
-                    return c;
-                 }).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                );
-            } else {
-                 setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
-            }
-        } catch (error) {
-            console.error("Failed to send message", error);
-            setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
-        } finally {
-            setIsSending(false);
-        }
+        setIsSending(false);
     };
 
     const otherParticipant = selectedConversation 
@@ -178,7 +141,6 @@ export default function MessagesPage() {
     }
 
     if (isMobile) {
-        // Mobile view remains largely the same, maybe implement a chat detail view later
         return (
              <div className="h-full">
                 <CardHeader>
@@ -193,7 +155,7 @@ export default function MessagesPage() {
                             if (!otherUser) return null;
                             const lastMessage = convo.messages[convo.messages.length - 1];
                             return (
-                                <div key={convo.id} onClick={() => alert("Chat view not implemented for mobile demo.")}
+                                <div key={convo.id} onClick={() => alert("Please view on desktop for full chat functionality.")}
                                     className="flex items-center gap-3 p-3 cursor-pointer hover:bg-accent">
                                     <Avatar>
                                         <AvatarImage src={otherUser.avatar} alt={otherUser.name} />
@@ -201,7 +163,7 @@ export default function MessagesPage() {
                                     </Avatar>
                                     <div className="flex-1 overflow-hidden">
                                         <p className="font-semibold truncate">{otherUser.name}</p>
-                                        <p className="text-sm text-muted-foreground truncate">{lastMessage?.text}</p>
+                                        <p className="text-sm text-muted-foreground truncate">{lastMessage?.text || "No messages yet"}</p>
                                     </div>
                                 </div>
                             )
@@ -237,7 +199,7 @@ export default function MessagesPage() {
                                 </Avatar>
                                 <div className="flex-1 overflow-hidden">
                                     <p className="font-semibold truncate">{otherUser.name}</p>
-                                    <p className="text-sm text-muted-foreground truncate">{lastMessage?.text}</p>
+                                    <p className="text-sm text-muted-foreground truncate">{lastMessage?.text || "No messages yet"}</p>
                                 </div>
                             </div>
                         )
@@ -327,3 +289,5 @@ function MessagesPageSkeleton() {
         </div>
     )
 }
+
+    

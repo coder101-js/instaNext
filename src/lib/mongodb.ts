@@ -8,33 +8,29 @@ if (!MONGO_URI) {
 }
 
 let cachedClient: MongoClient | null = null;
-let cachedDb: Db | null = null;
 
-async function connectToDatabase(): Promise<Db> {
-    if (cachedClient && cachedDb) {
-        return cachedDb;
+async function connectToClient(): Promise<MongoClient> {
+    if (cachedClient) {
+        return cachedClient;
     }
     const client = await MongoClient.connect(MONGO_URI);
-    const db = client.db(); // This will use the default database from the connection string
-
     cachedClient = client;
-    cachedDb = db;
-
-    return db;
+    return client;
 }
 
 export async function connectToAuthDatabase(): Promise<Db> {
-  return connectToDatabase();
+  const client = await connectToClient();
+  return client.db('instanext-auth');
 }
 
 export async function connectToFeedDatabase(): Promise<Db> {
-  return connectToDatabase();
+  const client = await connectToClient();
+  return client.db('instanext-feed');
 }
 
 export async function connectToUsersDatabase(): Promise<Db> {
-    return connectToDatabase();
+    const client = await connectToClient();
+    return client.db('instanext-users');
 }
 
-export async function connectToMessagesDatabase(): Promise<Db> {
-    return connectToDatabase();
-}
+    
