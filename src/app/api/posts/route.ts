@@ -12,6 +12,7 @@ async function getUserIdFromRequest(req: NextRequest) {
         }
         return null;
     } catch (error) {
+        console.error("Error getting user from request:", error);
         return null;
     }
 }
