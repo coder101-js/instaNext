@@ -4,6 +4,7 @@ import { connectToAuthDatabase, connectToUsersDatabase } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import { ObjectId } from 'mongodb';
+import { User } from '@/lib/data';
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,25 +35,30 @@ export async function POST(req: NextRequest) {
     const userProfile = await profilesCollection.findOne({ _id: authUser._id });
 
     if (!userProfile) {
-        // This case should ideally not happen if signup is working correctly
         return NextResponse.json({ message: 'User profile not found.' }, { status: 404 });
     }
     
-    const userToReturn = {
+    const userToReturn: User = {
         id: userProfile._id.toString(),
         username: userProfile.username,
         name: userProfile.name,
         email: userProfile.email,
         avatar: userProfile.avatar,
         bio: userProfile.bio,
-        posts: userProfile.posts,
-        followers: userProfile.followers,
-        following: userProfile.following,
-        saved: userProfile.saved,
-    }
+        posts: userProfile.posts || [],
+        followers: Array.isArray(userProfile.followers) ? userProfile.followers : [],
+        following: Array.isArray(userProfile.following) ? userProfile.following : [],
+        saved: userProfile.saved || [],
+    };
 
+    // Sign a JWT token
+    const token = sign(
+        { userId: userToReturn.id, email: userToReturn.email, username: userToReturn.username }, 
+        process.env.JWT_SECRET!, 
+        { expiresIn: '7d' }
+    );
 
-    return NextResponse.json(userToReturn, { status: 200 });
+    return NextResponse.json({ user: userToReturn, token }, { status: 200 });
 
   } catch (error) {
     console.error('Login error:', error);

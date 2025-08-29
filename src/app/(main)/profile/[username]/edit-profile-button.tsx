@@ -22,13 +22,14 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera } from "lucide-react";
 
-async function followUser(userIdToFollow: string) {
-  const userPayload = localStorage.getItem('insta-user');
+async function followUser(userIdToFollow: string, token: string | null) {
+  if (!token) throw new Error("Authentication token is missing.");
+  
   const response = await fetch('/api/user/follow', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Payload': userPayload || '',
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ userIdToFollow }),
   });
@@ -40,14 +41,13 @@ async function followUser(userIdToFollow: string) {
 }
 
 export function ProfileEditButton({ user }: { user: User }) {
-  const { user: currentUser, setUser: setAuthUser } = useAuth();
+  const { user: currentUser, token, updateUserAndToken } = useAuth();
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
   const isCurrentlyFollowing = Array.isArray(currentUser?.following) && currentUser.following.includes(user.id);
 
-  // Optimistic UI for following
   const [optimisticIsFollowing, setOptimisticIsFollowing] = useOptimistic(
     isCurrentlyFollowing,
     (state, isFollowing) => isFollowing as boolean
@@ -58,16 +58,14 @@ export function ProfileEditButton({ user }: { user: User }) {
       setOptimisticIsFollowing(!optimisticIsFollowing);
     });
     try {
-      const { updatedCurrentUser } = await followUser(user.id);
-      // Update user in auth context and localStorage
-      setAuthUser(updatedCurrentUser);
-      localStorage.setItem('insta-user', JSON.stringify(updatedCurrentUser));
-      router.refresh(); // Refresh the page to show new follower count
+      const { updatedCurrentUser } = await followUser(user.id, token);
+      updateUserAndToken(updatedCurrentUser);
+      router.refresh(); 
     } catch (error) {
       console.error(error);
-      toast({ variant: "destructive", title: "Error", description: "Could not follow user." });
-      // Revert optimistic update
-       setOptimisticIsFollowing(optimisticIsFollowing);
+      const errorMessage = error instanceof Error ? error.message : "Could not process request.";
+      toast({ variant: "destructive", title: "Error", description: errorMessage });
+      setOptimisticIsFollowing(optimisticIsFollowing);
     }
   };
 
@@ -82,9 +80,8 @@ export function ProfileEditButton({ user }: { user: User }) {
   );
 }
 
-
 function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean, setOpen: (o: boolean) => void}) {
-  const { setUser: setAuthUser } = useAuth();
+  const { token, updateUserAndToken } = useAuth();
   const [name, setName] = useState(user.name);
   const [bio, setBio] = useState(user.bio);
   const [avatarPreview, setAvatarPreview] = useState(user.avatar);
@@ -111,27 +108,29 @@ function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean,
 
     try {
       const profileData = { name, bio, avatar: avatarDataUri };
-      const userPayload = localStorage.getItem('insta-user');
-
+      
       const response = await fetch("/api/user/profile", {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
-          "X-User-Payload": userPayload || '',
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify(profileData),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update profile.");
+        let errorData = { message: "Failed to update profile." };
+        try {
+          errorData = await response.json();
+        } catch(e) {
+          // Response not json
+        }
+        throw new Error(errorData.message);
       }
 
       const updatedUser = await response.json();
       
-      // Update user in auth context and localStorage
-      setAuthUser(updatedUser);
-      localStorage.setItem('insta-user', JSON.stringify(updatedUser));
+      updateUserAndToken(updatedUser);
 
       toast({ title: "Profile Updated" });
       setOpen(false);
@@ -205,4 +204,3 @@ function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean,
     </Dialog>
   );
 }
-

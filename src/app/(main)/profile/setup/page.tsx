@@ -15,7 +15,7 @@ import { Camera, Tag, X, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function ProfileSetupPage() {
-  const { user, login, logout, setUser: setAuthUser } = useAuth(); // Get setUser from context
+  const { user, logout, token, updateUserAndToken } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -61,7 +61,6 @@ export default function ProfileSetupPage() {
       setHashtags(hashtags.filter(tag => tag !== tagToRemove));
   }
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -74,32 +73,29 @@ export default function ProfileSetupPage() {
            hashtags,
            avatar: avatarDataUri,
        }
-      
-      const userPayload = localStorage.getItem('insta-user');
 
       const response = await fetch("/api/user/profile", {
         method: "PUT",
         headers: { 
             "Content-Type": "application/json",
-            "X-User-Payload": userPayload || '',
+            "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify(profileData),
       });
 
       if (!response.ok) {
-        let errorData;
+        let errorData = { message: "Failed to update profile." };
         try {
           errorData = await response.json();
         } catch (e) {
-          // Not a JSON response
+          // Not a JSON response, stick with default message
         }
-        throw new Error(errorData?.message || "Failed to update profile.");
+        throw new Error(errorData.message);
       }
       
       const updatedUser = await response.json();
       
-      setAuthUser(updatedUser);
-      localStorage.setItem('insta-user', JSON.stringify(updatedUser));
+      updateUserAndToken(updatedUser);
 
       toast({ title: "Profile Setup Complete!", description: "Welcome to InstaNext!" });
       router.push("/");

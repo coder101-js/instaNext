@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Upload } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function CreatePostPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -21,6 +22,7 @@ export default function CreatePostPage() {
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { token } = useAuth();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -70,12 +72,11 @@ export default function CreatePostPage() {
     }
     setIsSharing(true);
     try {
-      const userPayload = localStorage.getItem('insta-user');
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
-            'X-User-Payload': userPayload || '',
+            'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           image: imageDataUri,
@@ -85,13 +86,13 @@ export default function CreatePostPage() {
       });
 
       if (!response.ok) {
-        let errorData;
+        let errorData = { message: 'Failed to create post.' };
         try {
             errorData = await response.json();
         } catch (e) {
             // Not a JSON response
         }
-        throw new Error(errorData?.message || 'Failed to create post.');
+        throw new Error(errorData.message);
       }
 
       toast({

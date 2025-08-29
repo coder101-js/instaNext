@@ -7,16 +7,19 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   setUser: (user: User | null) => void;
   login: (email: string, password?: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  updateUserAndToken: (user: User, token?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -25,19 +28,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       try {
         const storedUser = localStorage.getItem("insta-user");
-        if (storedUser) {
+        const storedToken = localStorage.getItem("insta-token");
+        if (storedUser && storedToken) {
           const parsedUser: User = JSON.parse(storedUser);
           setUser(parsedUser);
+          setToken(storedToken);
         }
       } catch (error) {
         console.error("Failed to parse user from localStorage", error);
         localStorage.removeItem("insta-user");
+        localStorage.removeItem("insta-token");
       } finally {
         setIsLoading(false);
       }
     };
     checkUser();
   }, []);
+  
+  const updateUserAndToken = (user: User, token?: string) => {
+    // Ensure followers/following are arrays for client-side consistency
+    const consistentUser = {
+        ...user,
+        followers: Array.isArray(user.followers) ? user.followers : [],
+        following: Array.isArray(user.following) ? user.following : [],
+    }
+
+    setUser(consistentUser);
+    localStorage.setItem("insta-user", JSON.stringify(consistentUser));
+    
+    if (token) {
+        setToken(token);
+        localStorage.setItem("insta-token", token);
+    }
+  }
+
 
   const login = async (email: string, password?: string) => {
     setIsLoading(true);
@@ -53,24 +77,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(errorData.message || "Login failed");
       }
 
-      const userToLogin: User = await response.json();
+      const { user: loggedInUser, token: newAuthToken } = await response.json();
       
-      // Ensure followers/following are arrays for client-side consistency
-      if (typeof userToLogin.followers === 'number') {
-        userToLogin.followers = []; // Or fetch the actual list if needed client-side
-      }
-      if (typeof userToLogin.following === 'number') {
-        userToLogin.following = [];
-      }
-
-
-      if (userToLogin) {
-        localStorage.setItem("insta-user", JSON.stringify(userToLogin));
-        setUser(userToLogin);
+      if (loggedInUser && newAuthToken) {
+        updateUserAndToken(loggedInUser, newAuthToken);
         router.push("/");
       } else {
-        throw new Error("User not found after successful login response.");
+        throw new Error("Login response missing user or token.");
       }
+
     } catch (error) {
       console.error(error);
       throw error; 
@@ -81,12 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem("insta-user");
+    localStorage.removeItem("insta-token");
     setUser(null);
+    setToken(null);
     router.push("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, setUser, login, logout, isLoading, updateUserAndToken }}>
       {children}
     </AuthContext.Provider>
   );
