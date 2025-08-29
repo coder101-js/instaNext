@@ -14,6 +14,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/login");
+    } else if (!isLoading && user && !user.username) {
+        // This case handles a user who signed up but didn't finish profile setup
+        router.push('/profile/setup');
     }
   }, [user, isLoading, router]);
 
@@ -45,6 +48,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </div>
     );
   }
+    
+  if (user && !user.username) {
+    // Render child (profile setup page) without the main layout
+    return <>{children}</>
+  }
+
 
   return (
     <div className="flex min-h-screen w-full">

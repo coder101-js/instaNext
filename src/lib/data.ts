@@ -57,6 +57,20 @@ export type Conversation = {
   messages: Message[];
 };
 
+export type AdminUser = {
+    id: string;
+    email: string;
+    isVerified: boolean;
+    name: string;
+    username: string;
+    avatar: string;
+    followers: number;
+    following: number;
+    postCount: number;
+    createdAt: Date;
+}
+
+
 const serializeUserForProfile = (user: any): User | null => {
     if (!user) return null;
     const serialized = {
