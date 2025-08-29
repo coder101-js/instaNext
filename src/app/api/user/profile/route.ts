@@ -62,6 +62,10 @@ export async function PUT(req: NextRequest) {
     // Fetch the updated user to return it
     const updatedUser = await profilesCollection.findOne({ _id: new ObjectId(userId) });
     
+    if (!updatedUser) {
+        return NextResponse.json({ message: 'Could not retrieve updated user profile' }, { status: 404 });
+    }
+
     const userToReturn = {
         id: updatedUser._id.toString(),
         username: updatedUser.username,

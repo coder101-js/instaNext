@@ -27,8 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const storedUser = localStorage.getItem("insta-user");
         if (storedUser) {
           const parsedUser: User = JSON.parse(storedUser);
-          // In a real app, you would want to re-validate the user session with the backend here.
-          // For now, we'll trust the localStorage and re-fetch on login.
           setUser(parsedUser);
         }
       } catch (error) {
@@ -47,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch('/api/login', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ email, password }), // Password can be undefined for re-login
+         body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {

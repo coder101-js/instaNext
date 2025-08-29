@@ -137,7 +137,7 @@ export function ProfileEditButton({ user }: { user: User }) {
               </Label>
               <Textarea
                 id="bio"
-                value={bio}
+                value={bio || ''}
                 onChange={(e) => setBio(e.target.value)}
                 className="col-span-3"
               />
