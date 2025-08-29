@@ -73,10 +73,10 @@ export async function PUT(req: NextRequest) {
         email: updatedUser.email,
         avatar: updatedUser.avatar,
         bio: updatedUser.bio,
-        posts: updatedUser.posts,
-        followers: updatedUser.followers,
-        following: updatedUser.following,
-        saved: updatedUser.saved,
+        posts: updatedUser.posts || [],
+        followers: updatedUser.followers || [],
+        following: updatedUser.following || [],
+        saved: updatedUser.saved || [],
         profileSetupComplete: updatedUser.profileSetupComplete,
     }
 

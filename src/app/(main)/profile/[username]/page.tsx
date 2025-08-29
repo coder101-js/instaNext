@@ -1,7 +1,6 @@
 
 "use client"
 
-import { getUserByUsername, getPostsForUser, getSavedPosts, User } from "@/lib/data";
 import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +12,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Post, User } from "@/lib/data";
 
 function ThemeToggle() {
     const { theme, setTheme } = useTheme();
@@ -35,30 +35,27 @@ export default function ProfilePage() {
     const params = useParams();
     const username = params.username as string;
     const [user, setUser] = useState<User | null>(null);
-    const [userPosts, setUserPosts] = useState<any[]>([]);
-    const [savedPosts, setSavedPosts] = useState<any[]>([]);
+    const [userPosts, setUserPosts] = useState<Post[]>([]);
+    const [savedPosts, setSavedPosts] = useState<Post[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const userData = await getUserByUsername(username);
-                if (!userData) {
+                const res = await fetch(`/api/user/profile/${username}`);
+                if (!res.ok) {
                     notFound();
                     return;
                 }
-                setUser(userData);
-
-                const [postsData, savedPostsData] = await Promise.all([
-                    getPostsForUser(userData.id),
-                    getSavedPosts(userData.id)
-                ]);
-                setUserPosts(postsData);
-                setSavedPosts(savedPostsData);
+                const { user, posts, savedPosts } = await res.json();
+                setUser(user);
+                setUserPosts(posts);
+                setSavedPosts(savedPosts);
 
             } catch (error) {
                 console.error("Failed to fetch profile data", error);
+                // Optionally redirect to an error page or show a message
             } finally {
                 setIsLoading(false);
             }
@@ -92,8 +89,8 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex gap-8 text-sm justify-center sm:justify-start">
                         <p><span className="font-semibold">{userPosts.length}</span> posts</p>
-                        <p><span className="font-semibold">{(user.followers || 0).toLocaleString()}</span> followers</p>
-                        <p><span className="font-semibold">{(user.following || 0).toLocaleString()}</span> following</p>
+                        <p><span className="font-semibold">{(user.followers as number).toLocaleString()}</span> followers</p>
+                        <p><span className="font-semibold">{(user.following as number).toLocaleString()}</span> following</p>
                     </div>
                     <div>
                         <h2 className="font-semibold text-sm">{user.name}</h2>

@@ -54,15 +54,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const userToLogin: User = await response.json();
+      
+      // Ensure followers/following are arrays for client-side consistency
+      if (typeof userToLogin.followers === 'number') {
+        userToLogin.followers = []; // Or fetch the actual list if needed client-side
+      }
+      if (typeof userToLogin.following === 'number') {
+        userToLogin.following = [];
+      }
+
 
       if (userToLogin) {
         localStorage.setItem("insta-user", JSON.stringify(userToLogin));
         setUser(userToLogin);
-        if (!userToLogin.profileSetupComplete) {
-            router.push("/profile/setup");
-        } else {
-            router.push("/");
-        }
+        router.push("/");
       } else {
         throw new Error("User not found after successful login response.");
       }

@@ -45,9 +45,11 @@ export function ProfileEditButton({ user }: { user: User }) {
   const { toast } = useToast();
   const router = useRouter();
 
+  const isCurrentlyFollowing = Array.isArray(currentUser?.following) && currentUser.following.includes(user.id);
+
   // Optimistic UI for following
   const [optimisticIsFollowing, setOptimisticIsFollowing] = useOptimistic(
-    currentUser?.following.includes(user.id),
+    isCurrentlyFollowing,
     (state, isFollowing) => isFollowing as boolean
   );
   
