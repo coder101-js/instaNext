@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Search, PlusSquare, MessageCircle, LogOut, User as UserIcon } from "lucide-react";
+import { Home, Search, PlusSquare, MessageCircle, LogOut, User as UserIcon, Bot } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/search", icon: Search, label: "Search" },
   { href: "/create", icon: PlusSquare, label: "Create" },
   { href: "/messages", icon: MessageCircle, label: "Messages" },
+  { href: "/chat", icon: Bot, label: "AI Chat" },
 ];
 
 export function MainSidebar() {
@@ -115,10 +116,6 @@ export function MobileNav() {
                     </Avatar>
                      {pathname.startsWith('/profile') && <span className="absolute bottom-1 h-1 w-6 rounded-full bg-gradient-to-r from-primary to-accent"></span>}
                     <span className="sr-only">Profile</span>
-                </button>
-                 <button onClick={logout} className="relative flex flex-col items-center justify-center rounded-lg transition-colors w-1/6 p-2 text-muted-foreground hover:text-foreground">
-                    <LogOut className="h-6 w-6" />
-                    <span className="sr-only">Logout</span>
                 </button>
             </div>
         </div>
