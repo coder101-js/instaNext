@@ -67,17 +67,12 @@ export default function ProfileSetupPage() {
     setIsLoading(true);
 
     try {
-       // In a real implementation, you would first upload the avatarFile to a storage service
-       // and get back a URL. For this example, we'll just pass the data URI.
-       const avatarUrl = avatarDataUri;
-       
        const profileData = {
            name,
            username,
            bio,
            hashtags,
-           avatar: avatarUrl,
-           profileSetupComplete: true
+           avatar: avatarDataUri,
        }
       
       const userPayload = localStorage.getItem('insta-user');
@@ -103,7 +98,6 @@ export default function ProfileSetupPage() {
       
       const updatedUser = await response.json();
       
-      // Update user in auth context and localStorage
       setAuthUser(updatedUser);
       localStorage.setItem('insta-user', JSON.stringify(updatedUser));
 

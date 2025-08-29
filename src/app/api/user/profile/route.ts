@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToUsersDatabase } from '@/lib/mongodb';
+import { connectToAuthDatabase, connectToUsersDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
 // This is a simplified way to get the user ID. 
@@ -32,20 +32,36 @@ export async function PUT(req: NextRequest) {
 
     const { name, bio, username, hashtags, avatar } = await req.json();
 
+    const usersDb = await connectToUsersDatabase();
+    const profilesCollection = usersDb.collection('profiles');
+    const authDb = await connectToAuthDatabase();
+    const authCollection = authDb.collection('users');
+    
+    const currentUser = await profilesCollection.findOne({ _id: new ObjectId(userId) });
+    if (!currentUser) {
+        return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (bio !== undefined) updateData.bio = bio;
-    if (username !== undefined) updateData.username = username;
     if (hashtags !== undefined) updateData.hashtags = hashtags;
     if (avatar !== undefined) updateData.avatar = avatar;
+
+    // Handle username update separately to check for uniqueness
+    if (username !== undefined && username !== currentUser.username) {
+        const existingUser = await profilesCollection.findOne({ username: username });
+        if (existingUser) {
+            return NextResponse.json({ message: 'Username is already taken.' }, { status: 409 });
+        }
+        updateData.username = username;
+    }
 
 
     if (Object.keys(updateData).length === 0) {
         return NextResponse.json({ message: 'No profile data provided to update.' }, { status: 400 });
     }
     
-    const db = await connectToUsersDatabase();
-    const profilesCollection = db.collection('profiles');
     
     const result = await profilesCollection.updateOne(
       { _id: new ObjectId(userId) },
@@ -53,6 +69,14 @@ export async function PUT(req: NextRequest) {
         $set: updateData
       }
     );
+
+    // If username was updated, also update it in the auth collection
+    if (updateData.username) {
+        await authCollection.updateOne(
+            { _id: new ObjectId(userId) },
+            { $set: { username: updateData.username } }
+        );
+    }
 
     if (result.matchedCount === 0) {
         return NextResponse.json({ message: 'User profile not found' }, { status: 404 });
