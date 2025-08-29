@@ -289,5 +289,3 @@ function MessagesPageSkeleton() {
         </div>
     )
 }
-
-    
