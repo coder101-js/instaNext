@@ -154,7 +154,7 @@ export default function SignupPage() {
       {step === 2 && (
         <form onSubmit={handleOtpSubmit} className="animate-fade-in">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-headline">Verify Email</CardTitle>
+            <CardTitle className="text-2xl font-headline gradient-text">Verify Email</CardTitle>
             <CardDescription>Enter the OTP sent to your email.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

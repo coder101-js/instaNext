@@ -80,7 +80,7 @@ function ResetPasswordFormComponent() {
       return (
            <Card className="w-full max-w-sm">
                <CardHeader>
-                   <CardTitle>Invalid Token</CardTitle>
+                   <CardTitle className="gradient-text">Invalid Token</CardTitle>
                    <CardDescription>
                        The password reset link is invalid or has expired. Please request a new one.
                    </CardDescription>
@@ -93,7 +93,7 @@ function ResetPasswordFormComponent() {
     <Card className="w-full max-w-sm">
       <form onSubmit={handleSubmit}>
         <CardHeader>
-          <CardTitle>Reset Password</CardTitle>
+          <CardTitle className="gradient-text">Reset Password</CardTitle>
           <CardDescription>
             Enter your new password below.
           </CardDescription>

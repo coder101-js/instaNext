@@ -31,7 +31,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 </div>
             </div>
         </aside>
-         <main className="flex flex-1 flex-col sm:ml-20 pb-16 sm:pb-0 bg-secondary/40">
+         <main className="flex flex-1 flex-col sm:ml-20 pb-16 sm:pb-0 bg-background">
             <div className="flex justify-center py-4 sm:py-8">
                 <div className="w-full max-w-md space-y-6">
                     <div className="p-3 flex items-center gap-3">
@@ -49,7 +49,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex min-h-screen w-full">
         <MainSidebar />
-        <main className="flex flex-1 flex-col sm:ml-20 pb-16 sm:pb-0 bg-secondary/40">
+        <main className="flex flex-1 flex-col sm:ml-20 pb-16 sm:pb-0 bg-background">
             {children}
         </main>
         <MobileNav />

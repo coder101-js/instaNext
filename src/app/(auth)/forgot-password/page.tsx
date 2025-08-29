@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
     <Card className="w-full max-w-sm">
       <form onSubmit={handleSubmit}>
         <CardHeader>
-          <CardTitle>Forgot Password</CardTitle>
+          <CardTitle className="gradient-text">Forgot Password</CardTitle>
           <CardDescription>
             Enter your email and we'll send you a link to reset your password.
           </CardDescription>
