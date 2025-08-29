@@ -3,7 +3,7 @@
 
 import {chat} from '@/ai/flows/chat-flow';
 import {NextRequest, NextResponse} from 'next/server';
-import {stream} from '@genkit-ai/next';
+import {stream} from '@genkit-ai/next/server';
 
 export async function POST(req: NextRequest) {
   try {
