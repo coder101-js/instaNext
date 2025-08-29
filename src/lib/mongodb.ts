@@ -1,5 +1,5 @@
 
-import { MongoClient } from 'mongodb';
+import { MongoClient, Db } from 'mongodb';
 
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -8,32 +8,33 @@ if (!MONGO_URI) {
 }
 
 let cachedClient: MongoClient | null = null;
+let cachedDb: Db | null = null;
 
-async function connectToDatabase() {
-    if (cachedClient) {
-        return cachedClient;
+async function connectToDatabase(): Promise<Db> {
+    if (cachedClient && cachedDb) {
+        return cachedDb;
     }
     const client = await MongoClient.connect(MONGO_URI);
+    const db = client.db(); // This will use the default database from the connection string
+
     cachedClient = client;
-    return client;
+    cachedDb = db;
+
+    return db;
 }
 
-export async function connectToAuthDatabase() {
-  const client = await connectToDatabase();
-  return client.db('auth');
+export async function connectToAuthDatabase(): Promise<Db> {
+  return connectToDatabase();
 }
 
-export async function connectToFeedDatabase() {
-  const client = await connectToDatabase();
-  return client.db('feed');
+export async function connectToFeedDatabase(): Promise<Db> {
+  return connectToDatabase();
 }
 
-export async function connectToUsersDatabase() {
-    const client = await connectToDatabase();
-    return client.db('users');
+export async function connectToUsersDatabase(): Promise<Db> {
+    return connectToDatabase();
 }
 
-export async function connectToMessagesDatabase() {
-    const client = await connectToDatabase();
-    return client.db('messages');
+export async function connectToMessagesDatabase(): Promise<Db> {
+    return connectToDatabase();
 }
