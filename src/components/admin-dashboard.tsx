@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AdminUser, Post } from "@/lib/data";
 import {
   Table,
@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Trash2, Verified, ShieldOff, MoreVertical, Eye, X, MessageSquare, Heart } from "lucide-react";
+import { Trash2, Verified, ShieldOff, MoreVertical, Eye, X, MessageSquare, Heart, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,9 +36,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import Image from "next/image";
+import { Input } from "./ui/input";
 
 type DeletionTarget = {
-    type: 'user' | 'comment';
+    type: 'user' | 'comment' | 'post';
     id: string;
     parentId?: string; // For comments, this will be postId
 }
@@ -49,6 +50,17 @@ export function AdminDashboard({ initialUsers, initialPosts, viewingUser }: { in
   const [deletionTarget, setDeletionTarget] = useState<DeletionTarget | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return users;
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return users.filter(user =>
+      user.name.toLowerCase().includes(lowercasedQuery) ||
+      user.username.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [users, searchQuery]);
+
 
   const handleToggleVerify = async (userId: string, isVerified: boolean) => {
     try {
@@ -76,6 +88,8 @@ export function AdminDashboard({ initialUsers, initialPosts, viewingUser }: { in
         url = `/api/admin/users/${deletionTarget.id}`;
     } else if (deletionTarget.type === 'comment') {
         url = `/api/admin/posts/${deletionTarget.parentId}/comments/${deletionTarget.id}`;
+    } else if (deletionTarget.type === 'post') {
+        url = `/api/admin/posts/${deletionTarget.id}`;
     }
     
     try {
@@ -94,6 +108,8 @@ export function AdminDashboard({ initialUsers, initialPosts, viewingUser }: { in
                 }
                 return p;
             }));
+        } else if (deletionTarget.type === 'post') {
+            setPosts(posts.filter(p => p.id !== deletionTarget.id));
         }
 
         toast({ title: "Success", description: `${deletionTarget.type.charAt(0).toUpperCase() + deletionTarget.type.slice(1)} deleted.` });
@@ -122,10 +138,13 @@ export function AdminDashboard({ initialUsers, initialPosts, viewingUser }: { in
             posts={posts} 
             user={viewingUserDetails} 
             onDeleteComment={(postId, commentId) => setDeletionTarget({ type: 'comment', id: commentId, parentId: postId })}
+            onDeletePost={(postId) => setDeletionTarget({ type: 'post', id: postId })}
         />
       ) : (
         <UserManagementView 
-            users={users}
+            users={filteredUsers}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
             onToggleVerify={handleToggleVerify}
             onDeleteUser={(userId) => setDeletionTarget({ type: 'user', id: userId })}
             onViewPosts={(userId) => router.push(`/admin?viewPosts=${userId}`)}
@@ -138,6 +157,7 @@ export function AdminDashboard({ initialUsers, initialPosts, viewingUser }: { in
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
                     This action cannot be undone. This will permanently delete the {deletionTarget?.type}.
+                     {deletionTarget?.type === 'user' && " This will remove all their data including posts, comments, and followers."}
                 </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -153,8 +173,10 @@ export function AdminDashboard({ initialUsers, initialPosts, viewingUser }: { in
 }
 
 
-function UserManagementView({ users, onToggleVerify, onDeleteUser, onViewPosts }: {
+function UserManagementView({ users, searchQuery, setSearchQuery, onToggleVerify, onDeleteUser, onViewPosts }: {
     users: AdminUser[],
+    searchQuery: string,
+    setSearchQuery: (q: string) => void,
     onToggleVerify: (userId: string, isVerified: boolean) => void,
     onDeleteUser: (userId: string) => void,
     onViewPosts: (userId: string) => void,
@@ -164,6 +186,15 @@ function UserManagementView({ users, onToggleVerify, onDeleteUser, onViewPosts }
             <CardHeader>
                 <CardTitle>App Users</CardTitle>
                 <CardDescription>A list of all the users in your application.</CardDescription>
+                <div className="relative pt-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search users by name or username..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -236,10 +267,11 @@ function UserManagementView({ users, onToggleVerify, onDeleteUser, onViewPosts }
     )
 }
 
-function PostManagementView({ posts, user, onDeleteComment }: {
+function PostManagementView({ posts, user, onDeleteComment, onDeletePost }: {
     posts: Post[],
     user?: AdminUser,
     onDeleteComment: (postId: string, commentId: string) => void,
+    onDeletePost: (postId: string) => void,
 }) {
     if (!user) return <p>User not found.</p>;
 
@@ -270,8 +302,15 @@ function PostManagementView({ posts, user, onDeleteComment }: {
                         </div>
                         <div className="flex flex-col">
                             <div className="p-4 border-b">
-                                <p className="text-sm">{post.caption}</p>
-                                <p className="text-xs text-muted-foreground mt-2">{format(new Date(post.createdAt), "PPP p")}</p>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-sm">{post.caption}</p>
+                                        <p className="text-xs text-muted-foreground mt-2">{format(new Date(post.createdAt), "PPP p")}</p>
+                                    </div>
+                                    <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => onDeletePost(post.id)}>
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
+                                </div>
                                 <div className="flex gap-4 text-sm mt-2">
                                     <span className="flex items-center gap-1"><Heart className="h-4 w-4"/> {post.likes.length}</span>
                                     <span className="flex items-center gap-1"><MessageSquare className="h-4 w-4"/> {post.comments.length}</span>
@@ -303,3 +342,5 @@ function PostManagementView({ posts, user, onDeleteComment }: {
         </div>
     )
 }
+
+    
