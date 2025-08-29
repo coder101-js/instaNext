@@ -56,7 +56,9 @@ export async function PUT(req: NextRequest) {
     }
 
     if (Object.keys(updateData).length === 0) {
-        return NextResponse.json({ message: 'No profile data provided to update.' }, { status: 400 });
+        // Return current user if no data is provided to update
+        const { _id, ...userToReturn } = currentUser;
+        return NextResponse.json({ id: _id.toString(), ...userToReturn }, { status: 200 });
     }
     
     const result = await profilesCollection.findOneAndUpdate(
@@ -65,7 +67,7 @@ export async function PUT(req: NextRequest) {
       { returnDocument: 'after' }
     );
     
-    const updatedUser = result.value;
+    const updatedUser = result;
 
     if (!updatedUser) {
         return NextResponse.json({ message: 'Failed to update profile' }, { status: 500 });

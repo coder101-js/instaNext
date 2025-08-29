@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/auth-context";
 import { User } from "@/lib/data";
-import { useState, useOptimistic, startTransition } from "react";
+import { useState, useOptimistic, startTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -83,12 +83,23 @@ export function ProfileEditButton({ user }: { user: User }) {
 function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean, setOpen: (o: boolean) => void}) {
   const { token, updateUserAndToken } = useAuth();
   const [name, setName] = useState(user.name);
+  const [username, setUsername] = useState(user.username);
   const [bio, setBio] = useState(user.bio);
   const [avatarPreview, setAvatarPreview] = useState(user.avatar);
   const [avatarDataUri, setAvatarDataUri] = useState<string | null>(user.avatar);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    if (open) {
+      setName(user.name);
+      setUsername(user.username);
+      setBio(user.bio);
+      setAvatarPreview(user.avatar);
+      setAvatarDataUri(user.avatar);
+    }
+  }, [open, user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,7 +118,7 @@ function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean,
     setIsLoading(true);
 
     try {
-      const profileData = { name, bio, avatar: avatarDataUri };
+      const profileData = { name, username, bio, avatar: avatarDataUri };
       
       const response = await fetch("/api/user/profile", {
         method: "PUT",
@@ -134,7 +145,13 @@ function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean,
 
       toast({ title: "Profile Updated" });
       setOpen(false);
-      router.refresh();
+      
+      // If username changed, navigate to new profile page
+      if (user.username !== updatedUser.username) {
+        router.push(`/profile/${updatedUser.username}`);
+      } else {
+        router.refresh();
+      }
       
     } catch (error) {
       console.error(error);
@@ -179,6 +196,17 @@ function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean,
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="username" className="text-right">
+                Username
+              </Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="col-span-3"
               />
             </div>
