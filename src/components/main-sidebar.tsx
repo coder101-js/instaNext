@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Search, PlusSquare, MessageCircle, LogOut } from "lucide-react";
+import { Home, Search, PlusSquare, MessageCircle, LogOut, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -85,7 +85,7 @@ export function MainSidebar() {
 
 export function MobileNav() {
     const pathname = usePathname();
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const router = useRouter();
 
     const handleProfileClick = () => {
@@ -98,7 +98,7 @@ export function MobileNav() {
         <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-card sm:hidden">
             <div className="flex justify-around h-16 items-center">
                  {navItems.map((item) => (
-                    <Link key={item.label} href={item.href} className={cn("relative flex flex-col items-center justify-center rounded-lg transition-colors w-1/5 p-2",
+                    <Link key={item.label} href={item.href} className={cn("relative flex flex-col items-center justify-center rounded-lg transition-colors w-1/6 p-2",
                         pathname === item.href ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     )}>
                         <item.icon className="h-6 w-6" />
@@ -106,15 +106,19 @@ export function MobileNav() {
                         <span className="sr-only">{item.label}</span>
                     </Link>
                 ))}
-                 <button onClick={handleProfileClick} className={cn("relative flex flex-col items-center justify-center rounded-lg transition-colors w-1/5 p-2",
+                 <button onClick={handleProfileClick} className={cn("relative flex flex-col items-center justify-center rounded-lg transition-colors w-1/6 p-2",
                     pathname.startsWith('/profile') ? "text-primary" : "text-muted-foreground hover:text-foreground"
                  )}>
                     <Avatar className="h-6 w-6">
                         <AvatarImage src={user?.avatar} alt={user?.name} />
-                        <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
+                        <AvatarFallback><UserIcon className="h-4 w-4" /></AvatarFallback>
                     </Avatar>
                      {pathname.startsWith('/profile') && <span className="absolute bottom-1 h-1 w-6 rounded-full bg-gradient-to-r from-primary to-accent"></span>}
                     <span className="sr-only">Profile</span>
+                </button>
+                 <button onClick={logout} className="relative flex flex-col items-center justify-center rounded-lg transition-colors w-1/6 p-2 text-muted-foreground hover:text-foreground">
+                    <LogOut className="h-6 w-6" />
+                    <span className="sr-only">Logout</span>
                 </button>
             </div>
         </div>

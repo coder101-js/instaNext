@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Trash2, Verified, ShieldOff, MoreVertical, Eye, X, MessageSquare, Heart, Search } from "lucide-react";
+import { Trash2, Verified, ShieldOff, MoreVertical, Eye, X, MessageSquare, Heart, Search, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -119,6 +119,16 @@ export function AdminDashboard({ initialUsers, initialPosts, viewingUser }: { in
         setDeletionTarget(null);
     }
   }
+
+  const handleLogout = async () => {
+      try {
+          await fetch('/api/admin/logout', { method: 'POST' });
+          toast({ title: "Logged Out", description: "You have been successfully logged out."});
+          router.push('/admin/login');
+      } catch (error) {
+          toast({ variant: "destructive", title: "Error", description: "Failed to log out." });
+      }
+  }
   
   const viewingUserDetails = users.find(u => u.id === viewingUser);
 
@@ -126,11 +136,16 @@ export function AdminDashboard({ initialUsers, initialPosts, viewingUser }: { in
     <>
       <header className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-         {viewingUser && (
-             <Button onClick={() => router.push('/admin')}>
-                 <X className="mr-2 h-4 w-4" /> Back to All Users
-             </Button>
-         )}
+         <div className="flex items-center gap-2">
+             {viewingUser && (
+                 <Button variant="outline" onClick={() => router.push('/admin')}>
+                     <X className="mr-2 h-4 w-4" /> Back to All Users
+                 </Button>
+             )}
+              <Button variant="secondary" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" /> Logout
+            </Button>
+         </div>
       </header>
 
       {viewingUser ? (
@@ -342,5 +357,3 @@ function PostManagementView({ posts, user, onDeleteComment, onDeletePost }: {
         </div>
     )
 }
-
-    
