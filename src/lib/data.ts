@@ -21,6 +21,8 @@ export type User = {
   following: string[] | number; // Can be array of IDs or a count
   saved: string[];
   isVerified?: boolean;
+  isPrivate?: boolean;
+  isFollowingPrivate?: boolean;
 };
 
 export type Post = {
@@ -68,6 +70,7 @@ export type AdminUser = {
     following: number;
     postCount: number;
     createdAt: Date;
+    isPrivate: boolean;
 }
 
 

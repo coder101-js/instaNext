@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -15,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Trash2, Verified, ShieldOff, MoreVertical, Eye, X, MessageSquare, Heart, Search, LogOut } from "lucide-react";
+import { Trash2, Verified, ShieldOff, MoreVertical, Eye, X, MessageSquare, Heart, Search, LogOut, Lock, Unlock, Save } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import Image from "next/image";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
 type DeletionTarget = {
     type: 'user' | 'comment' | 'post';
@@ -245,12 +247,21 @@ function UserManagementView({ users, searchQuery, setSearchQuery, onToggleVerify
                             <p>{user.following} following</p>
                         </TableCell>
                         <TableCell>{format(new Date(user.createdAt), "PPP")}</TableCell>
-                        <TableCell>
-                            {user.isVerified ? (
-                                <Badge variant="secondary" className="text-blue-500"><Verified className="mr-1 h-4 w-4" /> Verified</Badge>
-                            ) : (
-                                <Badge variant="outline">Not Verified</Badge>
-                            )}
+                        <TableCell className="space-y-1">
+                            <div>
+                                {user.isVerified ? (
+                                    <Badge variant="secondary" className="text-blue-500"><Verified className="mr-1 h-4 w-4" /> Verified</Badge>
+                                ) : (
+                                    <Badge variant="outline">Not Verified</Badge>
+                                )}
+                            </div>
+                             <div>
+                                {user.isPrivate ? (
+                                    <Badge variant="secondary"><Lock className="mr-1 h-3 w-3" /> Private</Badge>
+                                ) : (
+                                    <Badge variant="outline"><Unlock className="mr-1 h-3 w-3" /> Public</Badge>
+                                )}
+                            </div>
                         </TableCell>
                         <TableCell className="text-right">
                             <DropdownMenu>
@@ -261,7 +272,7 @@ function UserManagementView({ users, searchQuery, setSearchQuery, onToggleVerify
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => onViewPosts(user.id)}>
-                                        <Eye className="mr-2 h-4 w-4" /> View Posts
+                                        <Eye className="mr-2 h-4 w-4" /> View Content
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => onToggleVerify(user.id, user.isVerified)}>
                                         {user.isVerified ? <ShieldOff className="mr-2 h-4 w-4" /> : <Verified className="mr-2 h-4 w-4" />}
@@ -288,6 +299,29 @@ function PostManagementView({ posts, user, onDeleteComment, onDeletePost }: {
     onDeleteComment: (postId: string, commentId: string) => void,
     onDeletePost: (postId: string) => void,
 }) {
+    const { toast } = useToast();
+    const [followers, setFollowers] = useState(user?.followers ?? 0);
+    const [following, setFollowing] = useState(user?.following ?? 0);
+
+    const handleStatUpdate = async () => {
+        if (!user) return;
+        try {
+            const response = await fetch(`/api/admin/users/${user.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ followers, following })
+            });
+             if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update stats.');
+            }
+            toast({ title: "Success", description: "User stats have been updated." });
+        } catch (error) {
+             toast({ variant: "destructive", title: "Error", description: error instanceof Error ? error.message : "An unknown error occurred." });
+        }
+    }
+
+
     if (!user) return <p>User not found.</p>;
 
     return (
@@ -300,11 +334,27 @@ function PostManagementView({ posts, user, onDeleteComment, onDeletePost }: {
                             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <CardTitle>Posts by {user.name}</CardTitle>
+                            <CardTitle>Content by {user.name}</CardTitle>
                             <CardDescription>@{user.username}</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
+                <CardContent className="grid sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="followers">Followers</Label>
+                        <Input id="followers" type="number" value={followers} onChange={(e) => setFollowers(Number(e.target.value))}/>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="following">Following</Label>
+                        <Input id="following" type="number" value={following} onChange={(e) => setFollowing(Number(e.target.value))}/>
+                    </div>
+                    <div className="flex items-end">
+                        <Button onClick={handleStatUpdate} className="w-full sm:w-auto">
+                            <Save className="mr-2 h-4 w-4"/>
+                            Save Stats
+                        </Button>
+                    </div>
+                </CardContent>
              </Card>
 
             {posts.length === 0 ? (

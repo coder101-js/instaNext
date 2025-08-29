@@ -1,11 +1,12 @@
 
+
 "use client"
 
 import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Grid3x3, Bookmark, Moon, Sun } from "lucide-react";
+import { Grid3x3, Bookmark, Moon, Sun, Lock } from "lucide-react";
 import { PostGrid } from "@/components/post-grid";
 import { ProfileEditButton } from "./edit-profile-button";
 import { useTheme } from "next-themes";
@@ -14,6 +15,7 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post, User } from "@/lib/data";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { useAuth } from "@/contexts/auth-context";
 
 function ThemeToggle() {
     const { theme, setTheme } = useTheme();
@@ -35,6 +37,7 @@ function ThemeToggle() {
 export default function ProfilePage() {
     const params = useParams();
     const username = params.username as string;
+    const { user: currentUser } = useAuth();
     const [user, setUser] = useState<User | null>(null);
     const [userPosts, setUserPosts] = useState<Post[]>([]);
     const [savedPosts, setSavedPosts] = useState<Post[]>([]);
@@ -74,6 +77,10 @@ export default function ProfilePage() {
     if (!user) {
         return notFound();
     }
+    
+    const isOwnProfile = currentUser?.id === user.id;
+    const isFollowing = Array.isArray(currentUser?.following) && currentUser?.following.includes(user.id);
+    const canViewProfile = !user.isPrivate || isOwnProfile || isFollowing;
 
     return (
         <div className="container mx-auto max-w-4xl p-4 sm:p-8">
@@ -106,18 +113,27 @@ export default function ProfilePage() {
                 </div>
             </header>
 
-            <Tabs defaultValue="posts" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-flex mx-auto border-b sm:border-none rounded-none">
-                    <TabsTrigger value="posts" className="gap-2 uppercase text-xs tracking-widest"><Grid3x3 className="w-4 h-4" /> Posts</TabsTrigger>
-                    <TabsTrigger value="saved" className="gap-2 uppercase text-xs tracking-widest"><Bookmark className="w-4 h-4" /> Saved</TabsTrigger>
-                </TabsList>
-                <TabsContent value="posts">
-                    <PostGrid posts={userPosts} />
-                </TabsContent>
-                <TabsContent value="saved">
-                    <PostGrid posts={savedPosts} />
-                </TabsContent>
-            </Tabs>
+            {canViewProfile ? (
+                 <Tabs defaultValue="posts" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-flex mx-auto border-b sm:border-none rounded-none">
+                        <TabsTrigger value="posts" className="gap-2 uppercase text-xs tracking-widest"><Grid3x3 className="w-4 h-4" /> Posts</TabsTrigger>
+                        {isOwnProfile && <TabsTrigger value="saved" className="gap-2 uppercase text-xs tracking-widest"><Bookmark className="w-4 h-4" /> Saved</TabsTrigger>}
+                    </TabsList>
+                    <TabsContent value="posts">
+                        <PostGrid posts={userPosts} />
+                    </TabsContent>
+                    {isOwnProfile && <TabsContent value="saved">
+                        <PostGrid posts={savedPosts} />
+                    </TabsContent>}
+                </Tabs>
+            ) : (
+                <div className="text-center py-20 border-t">
+                    <Lock className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h2 className="mt-4 text-xl font-semibold">This Account is Private</h2>
+                    <p className="text-muted-foreground">Follow this account to see their photos and videos.</p>
+                </div>
+            )}
+           
         </div>
     );
 }

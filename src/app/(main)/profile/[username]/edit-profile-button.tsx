@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 async function followUser(userIdToFollow: string, token: string | null) {
   if (!token) throw new Error("Authentication token is missing.");
@@ -87,6 +89,8 @@ function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean,
   const [bio, setBio] = useState(user.bio);
   const [avatarPreview, setAvatarPreview] = useState(user.avatar);
   const [avatarDataUri, setAvatarDataUri] = useState<string | null>(user.avatar);
+  const [isPrivate, setIsPrivate] = useState(user.isPrivate ?? false);
+  const [isFollowingPrivate, setIsFollowingPrivate] = useState(user.isFollowingPrivate ?? false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
@@ -98,6 +102,8 @@ function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean,
       setBio(user.bio);
       setAvatarPreview(user.avatar);
       setAvatarDataUri(user.avatar);
+      setIsPrivate(user.isPrivate ?? false);
+      setIsFollowingPrivate(user.isFollowingPrivate ?? false);
     }
   }, [open, user]);
 
@@ -118,7 +124,7 @@ function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean,
     setIsLoading(true);
 
     try {
-      const profileData = { name, username, bio, avatar: avatarDataUri };
+      const profileData = { name, username, bio, avatar: avatarDataUri, isPrivate, isFollowingPrivate };
       
       const response = await fetch("/api/user/profile", {
         method: "PUT",
@@ -220,6 +226,34 @@ function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean,
                 onChange={(e) => setBio(e.target.value)}
                 className="col-span-3"
               />
+            </div>
+            <div className="rounded-lg border p-4 space-y-4">
+              <div className="flex flex-row items-center justify-between">
+                <Label htmlFor="isPrivate" className="flex flex-col space-y-1">
+                  <span>Private Account</span>
+                   <span className="font-normal leading-snug text-muted-foreground text-xs">
+                      When your account is private, only people you approve can see your photos and videos.
+                    </span>
+                </Label>
+                <Switch
+                  id="isPrivate"
+                  checked={isPrivate}
+                  onCheckedChange={setIsPrivate}
+                />
+              </div>
+               <div className="flex flex-row items-center justify-between">
+                <Label htmlFor="isFollowingPrivate" className="flex flex-col space-y-1">
+                  <span>Private Following List</span>
+                   <span className="font-normal leading-snug text-muted-foreground text-xs">
+                      When this is on, only your followers can see who you're following.
+                    </span>
+                </Label>
+                <Switch
+                  id="isFollowingPrivate"
+                  checked={isFollowingPrivate}
+                  onCheckedChange={setIsFollowingPrivate}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

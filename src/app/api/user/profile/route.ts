@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToAuthDatabase, connectToUsersDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
@@ -28,7 +29,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, bio, username, hashtags, avatar } = await req.json();
+    const { name, bio, username, hashtags, avatar, isPrivate, isFollowingPrivate } = await req.json();
 
     const usersDb = await connectToUsersDatabase();
     const profilesCollection = usersDb.collection('profiles');
@@ -43,6 +44,9 @@ export async function PUT(req: NextRequest) {
     if (bio !== undefined) updateData.bio = bio;
     if (hashtags !== undefined) updateData.hashtags = hashtags;
     if (avatar !== undefined) updateData.avatar = avatar;
+    if (isPrivate !== undefined) updateData.isPrivate = isPrivate;
+    if (isFollowingPrivate !== undefined) updateData.isFollowingPrivate = isFollowingPrivate;
+
 
     if (username && username !== currentUser.username) {
         const existingUser = await profilesCollection.findOne({ 
@@ -94,6 +98,8 @@ export async function PUT(req: NextRequest) {
         followers: updatedUser.followers || [],
         following: updatedUser.following || [],
         saved: updatedUser.saved || [],
+        isPrivate: updatedUser.isPrivate,
+        isFollowingPrivate: updatedUser.isFollowingPrivate
     };
 
     return NextResponse.json(userToReturn, { status: 200 });

@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToAuthDatabase, connectToUsersDatabase } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
@@ -66,6 +67,8 @@ export async function POST(req: NextRequest) {
         followers: [],
         following: [],
         saved: [],
+        isPrivate: false,
+        isFollowingPrivate: false,
     };
 
     await profilesCollection.insertOne({ _id: authResult.insertedId, ...newUserProfile });

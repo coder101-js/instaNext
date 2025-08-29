@@ -1,4 +1,5 @@
 
+
 import { connectToFeedDatabase, connectToUsersDatabase } from './mongodb';
 import { ObjectId } from 'mongodb';
 import type { AdminUser, Post, Comment } from './data';
@@ -38,6 +39,7 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
                     following: Array.isArray(user.following) ? user.following.length : 0,
                     postCount,
                     createdAt: user._id.getTimestamp(),
+                    isPrivate: user.isPrivate || false,
                 };
             })
         );

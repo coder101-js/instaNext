@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToAuthDatabase, connectToFeedDatabase, connectToUsersDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
@@ -50,6 +51,44 @@ export async function DELETE(req: NextRequest, { params }: { params: { userId: s
 
   } catch (error) {
     console.error('Delete user error:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest, { params }: { params: { userId: string } }) {
+  try {
+    const { userId } = params;
+    const body = await req.json();
+
+    if (!userId) {
+      return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
+    }
+
+    const usersDb = await connectToUsersDatabase();
+    const profilesCollection = usersDb.collection('profiles');
+    
+    // Construct the update object from the request body
+    const updateData: Record<string, any> = {};
+    if (body.followers !== undefined) updateData.followers = Array(body.followers).fill('dummy_id');
+    if (body.following !== undefined) updateData.following = Array(body.following).fill('dummy_id');
+
+    if (Object.keys(updateData).length === 0) {
+        return NextResponse.json({ message: 'No update data provided' }, { status: 400 });
+    }
+    
+    const result = await profilesCollection.updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+        return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: 'User stats updated successfully' }, { status: 200 });
+
+  } catch (error) {
+    console.error('Update user stats error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
