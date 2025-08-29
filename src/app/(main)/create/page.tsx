@@ -113,10 +113,13 @@ export default function CreatePostPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl p-4 sm:p-8 flex items-center justify-center min-h-full">
+    <div className="container mx-auto max-w-3xl p-4 sm:p-8 flex flex-col items-center justify-center min-h-full">
+       <header className="text-center mb-4 sm:hidden">
+          <h1 className="text-4xl font-headline tracking-wider gradient-text">InstaNext</h1>
+      </header>
       <Card className="w-full">
         <CardHeader>
-            <CardTitle className="text-3xl font-bold font-headline">Create New Post</CardTitle>
+            <CardTitle className="text-3xl font-bold font-headline hidden sm:block">Create New Post</CardTitle>
         </CardHeader>
         <CardContent className="p-6 grid md:grid-cols-2 gap-6">
           <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 bg-secondary/50 h-[300px] md:h-[400px]">

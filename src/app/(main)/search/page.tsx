@@ -44,7 +44,10 @@ export default function SearchPage() {
   
   return (
     <div className="container mx-auto max-w-2xl p-4 sm:p-8">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6">Search</h1>
+      <header className="text-center mb-6">
+          <h1 className="text-4xl font-headline tracking-wider gradient-text sm:hidden">InstaNext</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold hidden sm:block">Search</h1>
+      </header>
       <div className="relative">
         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
@@ -110,4 +113,3 @@ function UserSkeleton() {
     </div>
   );
 }
-

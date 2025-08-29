@@ -77,6 +77,9 @@ export default function ProfilePage() {
     return (
         <div className="container mx-auto max-w-4xl p-4 sm:p-8">
             <header className="flex flex-col sm:flex-row items-center gap-4 md:gap-8 mb-8">
+                <div className="sm:hidden w-full text-center">
+                    <h1 className="text-4xl font-headline tracking-wider gradient-text">InstaNext</h1>
+                </div>
                 <Avatar className="w-24 h-24 sm:w-36 sm:h-36 border-2">
                     <AvatarImage src={user.avatar} alt={user.name} />
                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>

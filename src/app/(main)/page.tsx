@@ -13,7 +13,10 @@ export default async function HomePage() {
   );
 
   return (
-    <div className="flex justify-center py-4 sm:py-8">
+    <div className="flex flex-col items-center py-4 sm:py-8">
+       <header className="sm:hidden text-center mb-4">
+          <h1 className="text-4xl font-headline tracking-wider gradient-text">InstaNext</h1>
+      </header>
       <div className="w-full max-w-md space-y-6">
         {postsWithAuthors.length > 0 ? (
           postsWithAuthors.map((post) => (
