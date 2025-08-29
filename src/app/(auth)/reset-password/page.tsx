@@ -79,8 +79,8 @@ function ResetPasswordFormComponent() {
   if (!token) {
       return (
            <Card className="w-full max-w-sm">
-               <CardHeader>
-                   <CardTitle className="gradient-text">Invalid Token</CardTitle>
+               <CardHeader className="text-center">
+                   <CardTitle className="text-4xl font-headline tracking-wider gradient-text">InstaNext</CardTitle>
                    <CardDescription>
                        The password reset link is invalid or has expired. Please request a new one.
                    </CardDescription>
@@ -92,8 +92,8 @@ function ResetPasswordFormComponent() {
   return (
     <Card className="w-full max-w-sm">
       <form onSubmit={handleSubmit}>
-        <CardHeader>
-          <CardTitle className="gradient-text">Reset Password</CardTitle>
+        <CardHeader className="text-center">
+          <CardTitle className="text-4xl font-headline tracking-wider gradient-text">InstaNext</CardTitle>
           <CardDescription>
             Enter your new password below.
           </CardDescription>

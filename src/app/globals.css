@@ -93,4 +93,10 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
+
+  .gradient-ring {
+    @apply ring-2 ring-primary p-[1px] bg-gradient-to-r from-primary to-accent;
+    background-clip: border-box;
+    -webkit-background-clip: border-box;
+  }
 }

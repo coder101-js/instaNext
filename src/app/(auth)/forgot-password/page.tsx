@@ -47,11 +47,11 @@ export default function ForgotPasswordPage() {
   return (
     <Card className="w-full max-w-sm">
       <form onSubmit={handleSubmit}>
-        <CardHeader>
-          <CardTitle className="gradient-text">Forgot Password</CardTitle>
-          <CardDescription>
-            Enter your email and we'll send you a link to reset your password.
-          </CardDescription>
+        <CardHeader className="text-center">
+            <CardTitle className="text-4xl font-headline tracking-wider gradient-text">InstaNext</CardTitle>
+            <CardDescription>
+                Forgot your password? Enter your email and we'll send you a link to reset it.
+            </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">

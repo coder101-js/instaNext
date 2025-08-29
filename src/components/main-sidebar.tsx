@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", icon: Home, label: "Home" },
@@ -39,8 +40,11 @@ export function MainSidebar() {
             {navItems.map((item) => (
                 <Tooltip key={item.label}>
                     <TooltipTrigger asChild>
-                        <Link href={item.href} className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8 ${pathname === item.href ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                        <Link href={item.href} className={cn("relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8",
+                           pathname === item.href ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        )}>
                             <item.icon className="h-5 w-5" />
+                            {pathname === item.href && <span className="absolute inset-[-2px] rounded-full gradient-ring z-[-1]"></span>}
                             <span className="sr-only">{item.label}</span>
                         </Link>
                     </TooltipTrigger>
@@ -53,11 +57,12 @@ export function MainSidebar() {
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                     <button className="rounded-full h-9 w-9 md:h-8 md:w-8" onClick={handleProfileClick}>
+                     <button className="relative rounded-full h-9 w-9 md:h-8 md:w-8" onClick={handleProfileClick}>
                         <Avatar className="h-8 w-8">
                             <AvatarImage src={user?.avatar} alt={user?.name} />
                             <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
                         </Avatar>
+                        {pathname.startsWith('/profile') && <span className="absolute inset-[-3px] rounded-full gradient-ring z-[-1]"></span>}
                         <span className="sr-only">Profile</span>
                     </button>
                 </TooltipTrigger>
@@ -93,16 +98,22 @@ export function MobileNav() {
         <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-card sm:hidden">
             <div className="flex justify-around h-16 items-center">
                  {navItems.map((item) => (
-                    <Link key={item.label} href={item.href} className={`flex flex-col items-center justify-center rounded-lg transition-colors w-1/5 p-2 ${pathname === item.href ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                    <Link key={item.label} href={item.href} className={cn("relative flex flex-col items-center justify-center rounded-lg transition-colors w-1/5 p-2",
+                        pathname === item.href ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    )}>
                         <item.icon className="h-6 w-6" />
+                         {pathname === item.href && <span className="absolute bottom-1 h-1 w-6 rounded-full bg-gradient-to-r from-primary to-accent"></span>}
                         <span className="sr-only">{item.label}</span>
                     </Link>
                 ))}
-                 <button onClick={handleProfileClick} className={`flex flex-col items-center justify-center rounded-lg transition-colors w-1/5 p-2 ${pathname.startsWith('/profile') ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                 <button onClick={handleProfileClick} className={cn("relative flex flex-col items-center justify-center rounded-lg transition-colors w-1/5 p-2",
+                    pathname.startsWith('/profile') ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                 )}>
                     <Avatar className="h-6 w-6">
                         <AvatarImage src={user?.avatar} alt={user?.name} />
                         <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
                     </Avatar>
+                     {pathname.startsWith('/profile') && <span className="absolute bottom-1 h-1 w-6 rounded-full bg-gradient-to-r from-primary to-accent"></span>}
                     <span className="sr-only">Profile</span>
                 </button>
             </div>
