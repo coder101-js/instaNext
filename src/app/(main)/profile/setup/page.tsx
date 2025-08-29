@@ -92,8 +92,13 @@ export default function ProfileSetupPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update profile.");
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          // Not a JSON response
+        }
+        throw new Error(errorData?.message || "Failed to update profile.");
       }
       
       const updatedUser = await response.json();
