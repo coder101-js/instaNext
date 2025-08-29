@@ -10,12 +10,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/auth-context";
 import { type Conversation, type Message as MessageType, User } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { Send, MessageSquare, Loader2 } from "lucide-react";
+import { Send, MessageSquare, Loader2, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { io, Socket } from "socket.io-client";
 import { ClientToServerEvents, ServerToClientEvents } from "@/lib/socket-types";
+import { useDebounce } from "@/hooks/use-debounce";
 
 // Mock data for initial users/conversations since we removed the DB backend for this
 const MOCK_USERS: User[] = [
@@ -36,6 +37,11 @@ export default function MessagesPage() {
     const [isSending, setIsSending] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const [searchResults, setSearchResults] = useState<User[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
 
     // Initialize mock conversations
     useEffect(() => {
@@ -102,10 +108,58 @@ export default function MessagesPage() {
         }
     }, [messages]);
 
+    // Effect for user search
+    useEffect(() => {
+        if (debouncedSearchTerm && debouncedSearchTerm.length > 1) {
+            setIsSearching(true);
+            const fetchUsers = async () => {
+                try {
+                    const response = await fetch(`/api/user/search?q=${debouncedSearchTerm}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setSearchResults(data.filter((u: User) => u.id !== currentUser?.id));
+                    } else {
+                        setSearchResults([]);
+                    }
+                } catch (error) {
+                    console.error("Search error:", error);
+                    setSearchResults([]);
+                } finally {
+                    setIsSearching(false);
+                }
+            };
+            fetchUsers();
+        } else {
+            setSearchResults([]);
+            setIsSearching(false);
+        }
+    }, [debouncedSearchTerm, currentUser]);
+
     const handleSelectConversation = (convo: Conversation) => {
         setSelectedConversation(convo);
         setMessages(convo.messages || []);
     };
+    
+    const handleSelectUserFromSearch = (user: User) => {
+        if (!currentUser) return;
+        // Check if conversation already exists
+        const existingConvo = conversations.find(c => c.participants.some(p => p.id === user.id));
+        if (existingConvo) {
+            handleSelectConversation(existingConvo);
+        } else {
+            // Create a new conversation
+            const newConvo: Conversation = {
+                id: `convo-${Date.now()}`,
+                participants: [currentUser, user],
+                messages: [],
+                updatedAt: new Date()
+            };
+            setConversations(prev => [newConvo, ...prev]);
+            handleSelectConversation(newConvo);
+        }
+        setSearchTerm("");
+        setSearchResults([]);
+    }
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -174,38 +228,75 @@ export default function MessagesPage() {
         )
     }
 
+    const showSearchResults = searchTerm.length > 1;
+
     return (
         <div className="flex h-[calc(100vh-2rem)] border rounded-lg overflow-hidden m-4 bg-card">
             <aside className="w-1/3 border-r h-full flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-xl font-bold">Messages</CardTitle>
+                     <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search users..."
+                            className="pl-10"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </CardHeader>
-                {conversations.length === 0 ? (
-                     <div className="text-center text-muted-foreground p-8 flex-1">No conversations yet.</div>
-                ) : (
                 <ScrollArea className="flex-1">
-                    {conversations.map(convo => {
-                         const otherUser = convo.participants.find(p => p.id !== currentUser?.id);
-                         if (!otherUser) return null;
-                         const lastMessage = convo.messages[convo.messages.length - 1];
-                        return (
-                            <div key={convo.id} onClick={() => handleSelectConversation(convo)}
-                                className={cn("flex items-center gap-3 p-3 cursor-pointer hover:bg-accent",
-                                    selectedConversation?.id === convo.id && "bg-accent"
-                                )}>
-                                <Avatar>
-                                    <AvatarImage src={otherUser.avatar} alt={otherUser.name} />
-                                    <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 overflow-hidden">
-                                    <p className="font-semibold truncate">{otherUser.name}</p>
-                                    <p className="text-sm text-muted-foreground truncate">{lastMessage?.text || "No messages yet"}</p>
-                                </div>
+                    {isSearching ? (
+                        <div className="flex justify-center items-center h-full py-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : showSearchResults ? (
+                         searchResults.length > 0 ? (
+                            <div className="p-2 space-y-1">
+                                {searchResults.map(user => (
+                                    <div key={user.id} onClick={() => handleSelectUserFromSearch(user)}
+                                        className="flex items-center gap-3 p-2 cursor-pointer hover:bg-accent rounded-md">
+                                        <Avatar>
+                                            <AvatarImage src={user.avatar} alt={user.name} />
+                                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 overflow-hidden">
+                                            <p className="font-semibold truncate">{user.name}</p>
+                                            <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
+                        ) : (
+                             <div className="text-center text-muted-foreground p-8">No users found.</div>
                         )
-                    })}
+                    ) : (
+                        conversations.length > 0 ? (
+                             conversations.map(convo => {
+                                const otherUser = convo.participants.find(p => p.id !== currentUser?.id);
+                                if (!otherUser) return null;
+                                const lastMessage = convo.messages[convo.messages.length - 1];
+                                return (
+                                    <div key={convo.id} onClick={() => handleSelectConversation(convo)}
+                                        className={cn("flex items-center gap-3 p-3 cursor-pointer hover:bg-accent",
+                                            selectedConversation?.id === convo.id && "bg-accent"
+                                        )}>
+                                        <Avatar>
+                                            <AvatarImage src={otherUser.avatar} alt={otherUser.name} />
+                                            <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 overflow-hidden">
+                                            <p className="font-semibold truncate">{otherUser.name}</p>
+                                            <p className="text-sm text-muted-foreground truncate">{lastMessage?.text || "No messages yet"}</p>
+                                        </div>
+                                    </div>
+                                )
+                             })
+                        ) : (
+                           <div className="text-center text-muted-foreground p-8">No conversations yet.</div>
+                        )
+                    )}
                 </ScrollArea>
-                )}
             </aside>
             <main className="flex-1 flex flex-col h-full">
                 {selectedConversation && otherParticipant ? (
@@ -252,7 +343,7 @@ export default function MessagesPage() {
                     <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
                         <MessageSquare className="w-16 h-16"/>
                         <h2 className="text-xl font-bold">Your Messages</h2>
-                        <p>Select a conversation to start chatting.</p>
+                        <p>Select a conversation or search to start chatting.</p>
                     </div>
                 )}
             </main>
@@ -266,6 +357,7 @@ function MessagesPageSkeleton() {
             <aside className="w-1/3 border-r h-full flex flex-col">
                 <CardHeader>
                     <Skeleton className="h-7 w-32" />
+                    <Skeleton className="h-10 w-full" />
                 </CardHeader>
                 <div className="flex-1 p-2 space-y-2">
                     {[...Array(5)].map((_, i) => (
@@ -283,7 +375,7 @@ function MessagesPageSkeleton() {
                  <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
                     <MessageSquare className="w-16 h-16"/>
                     <h2 className="text-xl font-bold">Your Messages</h2>
-                    <p>Select a conversation to start chatting.</p>
+                    <p>Select a conversation or search to start chatting.</p>
                 </div>
             </main>
         </div>
