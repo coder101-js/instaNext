@@ -1,8 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verify } from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -15,9 +15,10 @@ export async function middleware(req: NextRequest) {
     }
 
     try {
-      // Verify the token
-      const decoded = verify(token, JWT_SECRET) as { isAdmin: boolean };
-      if (!decoded || !decoded.isAdmin) {
+      // Verify the token using jose for edge compatibility
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      
+      if (!payload || !(payload as { isAdmin: boolean }).isAdmin) {
         throw new Error('Invalid admin token');
       }
       // Token is valid, allow the request to proceed
