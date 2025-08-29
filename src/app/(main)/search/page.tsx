@@ -107,42 +107,37 @@ export default function SearchPage() {
             let modelResponse: Message = { role: 'model', content: [] };
             setMessages(prev => [...prev, modelResponse]);
 
+            let buffer = '';
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n').filter(line => line.trim().startsWith('{'));
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
                 
-                for (const line of lines) {
-                    try {
-                        const parsedChunk = JSON.parse(line);
-                        
-                        setMessages(prev => {
-                            const updatedMessages = [...prev];
-                            const lastMessage = updatedMessages[updatedMessages.length - 1];
+                // Process all complete lines, keep the last incomplete line in buffer
+                for (let i = 0; i < lines.length - 1; i++) {
+                    const line = lines[i].trim();
+                    if (line.startsWith('{')) {
+                       try {
+                            const parsedChunk = JSON.parse(line);
+                            
+                            setMessages(prev => {
+                                const updatedMessages = [...prev];
+                                const lastMessage = updatedMessages[updatedMessages.length - 1];
 
-                            if (parsedChunk.content) {
-                                for (const part of parsedChunk.content) {
-                                    if (part.text) {
-                                         const existingTextPart = lastMessage.content.find(p => p.text !== undefined);
-                                         if (existingTextPart) {
-                                            existingTextPart.text += part.text;
-                                         } else {
-                                            lastMessage.content.push({ text: part.text });
-                                         }
-                                    } else if (part.toolResponse) {
-                                        lastMessage.content.push({ toolResponse: part.toolResponse });
-                                    }
+                                if (parsedChunk.content) {
+                                    lastMessage.content = parsedChunk.content;
                                 }
-                            }
-                            return updatedMessages;
-                        });
+                                return updatedMessages;
+                            });
 
-                    } catch (e) {
-                         console.error("Error parsing chunk:", e, "Chunk:", line);
+                        } catch (e) {
+                             console.error("Error parsing chunk:", e, "Chunk:", line);
+                        }
                     }
                 }
+                buffer = lines[lines.length - 1];
             }
             
         } catch (error) {

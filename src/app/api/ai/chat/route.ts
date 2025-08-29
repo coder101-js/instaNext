@@ -1,6 +1,7 @@
 
 import { conversationalSearch } from '@/ai/flows/conversational-search-flow';
 import { NextRequest, NextResponse } from 'next/server';
+import { stream } from 'genkit/next';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,24 +11,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    const stream = await conversationalSearch({ history: history || [], prompt });
+    const searchStream = await conversationalSearch({ history: history || [], prompt });
     
-    // Create a new ReadableStream from the Genkit stream
-    const readableStream = new ReadableStream({
-      async start(controller) {
-        for await (const chunk of stream) {
-          controller.enqueue(JSON.stringify(chunk) + '\n');
-        }
-        controller.close();
-      },
-    });
-
-    return new Response(readableStream, {
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
-      },
-    });
+    // Use the built-in Genkit stream helper for Next.js
+    return stream(searchStream);
 
   } catch (error) {
     console.error('Error in conversational search:', error);
