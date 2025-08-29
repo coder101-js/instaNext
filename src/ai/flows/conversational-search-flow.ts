@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A conversational search agent that can find users.
@@ -7,7 +8,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {Message} from 'genkit/experimental/ai';
+import {Message} from 'genkit/ai';
 
 const SearchUsersInputSchema = z.object({
   query: z.string().describe('The search query for users, like a name or username.'),
