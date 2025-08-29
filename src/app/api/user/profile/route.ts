@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest) {
 
     // Handle username update separately to check for uniqueness
     if (username !== undefined && username !== currentUser.username) {
-        const existingUser = await profilesCollection.findOne({ username: username });
+        const existingUser = await profilesCollection.findOne({ username: username, _id: { $ne: new ObjectId(userId) } });
         if (existingUser) {
             return NextResponse.json({ message: 'Username is already taken.' }, { status: 409 });
         }
@@ -63,7 +63,7 @@ export async function PUT(req: NextRequest) {
     }
     
     
-    const result = await profilesCollection.updateOne(
+    await profilesCollection.updateOne(
       { _id: new ObjectId(userId) },
       { 
         $set: updateData
@@ -76,10 +76,6 @@ export async function PUT(req: NextRequest) {
             { _id: new ObjectId(userId) },
             { $set: { username: updateData.username } }
         );
-    }
-
-    if (result.matchedCount === 0) {
-        return NextResponse.json({ message: 'User profile not found' }, { status: 404 });
     }
     
     // Fetch the updated user to return it
@@ -110,4 +106,3 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
-
