@@ -30,7 +30,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, bio, username, hashtags, avatar, profileSetupComplete } = await req.json();
+    const { name, bio, username, hashtags, avatar } = await req.json();
 
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
@@ -38,7 +38,6 @@ export async function PUT(req: NextRequest) {
     if (username !== undefined) updateData.username = username;
     if (hashtags !== undefined) updateData.hashtags = hashtags;
     if (avatar !== undefined) updateData.avatar = avatar;
-    if (profileSetupComplete !== undefined) updateData.profileSetupComplete = profileSetupComplete;
 
 
     if (Object.keys(updateData).length === 0) {
@@ -77,7 +76,6 @@ export async function PUT(req: NextRequest) {
         followers: updatedUser.followers || [],
         following: updatedUser.following || [],
         saved: updatedUser.saved || [],
-        profileSetupComplete: updatedUser.profileSetupComplete,
     }
 
 

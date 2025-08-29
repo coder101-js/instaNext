@@ -20,7 +20,6 @@ export type User = {
   followers: string[] | number; // Can be array of IDs or a count
   following: string[] | number; // Can be array of IDs or a count
   saved: string[];
-  profileSetupComplete: boolean;
 };
 
 export type Post = {

@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToAuthDatabase, connectToUsersDatabase } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 import { User } from '@/lib/data';
-import { sendNotification } from '@/ai/flows/send-notification-flow';
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,17 +66,9 @@ export async function POST(req: NextRequest) {
         followers: [],
         following: [],
         saved: [],
-        profileSetupComplete: true, // User profile setup is no longer required
     };
 
     await profilesCollection.insertOne({ _id: authResult.insertedId, ...newUserProfile });
-    
-    await sendNotification({
-        email,
-        subject: 'Welcome to InstaNext!',
-        textBody: 'Thank you for signing up for InstaNext. We are excited to have you on board.',
-        htmlBody: '<h3>Welcome to InstaNext!</h3><p>Thank you for signing up. We are excited to have you on board.</p>',
-    });
 
     return NextResponse.json({ message: 'User created successfully', userId: authResult.insertedId }, { status: 201 });
 

@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToAuthDatabase } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 import { verify } from 'jsonwebtoken';
-import { sendNotification } from '@/ai/flows/send-notification-flow';
 
 interface JwtPayload {
     email: string;
@@ -39,14 +38,6 @@ export async function POST(req: NextRequest) {
     if (result.matchedCount === 0) {
         return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
-
-    // Send password reset confirmation email
-    await sendNotification({
-        email,
-        subject: 'Your InstaNext Password Has Been Reset',
-        textBody: 'Your password was successfully changed. If you did not make this change, please secure your account.',
-        htmlBody: '<p>Your password was successfully changed. If you did not make this change, please secure your account.</p>',
-    });
 
     return NextResponse.json({ message: 'Password reset successfully' }, { status: 200 });
 
