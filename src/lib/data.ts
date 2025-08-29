@@ -55,8 +55,9 @@ export type Message = {
 
 export type Conversation = {
   id: string;
-  participants: string[]; // array of user ids
+  participants: User[]; // array of user objects
   messages: Message[];
+  updatedAt: Date;
 };
 
 export type AdminUser = {

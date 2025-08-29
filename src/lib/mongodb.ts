@@ -4,6 +4,7 @@ import { MongoClient } from 'mongodb';
 const MONGO_URI = process.env.MONGO_URI;
 const MONGO_URI_FEED1 = process.env.MONGO_URI_FEED1;
 const MONGO_URI_USERS1 = process.env.MONGO_URI_USERS1;
+const MONGO_URI_MESSAGES1 = process.env.MONGO_URI_MESSAGES1;
 
 
 if (!MONGO_URI) {
@@ -15,11 +16,15 @@ if (!MONGO_URI_FEED1) {
 if (!MONGO_URI_USERS1) {
     throw new Error('Please define the MONGO_URI_USERS1 environment variable inside .env');
 }
+if (!MONGO_URI_MESSAGES1) {
+    throw new Error('Please define the MONGO_URI_MESSAGES1 environment variable inside .env');
+}
 
 
 let cachedAuthDb: MongoClient | null = null;
 let cachedFeedDb: MongoClient | null = null;
 let cachedUsersDb: MongoClient | null = null;
+let cachedMessagesDb: MongoClient | null = null;
 
 
 export async function connectToAuthDatabase() {
@@ -47,4 +52,13 @@ export async function connectToUsersDatabase() {
     const client = await MongoClient.connect(MONGO_URI_USERS1!);
     cachedUsersDb = client;
     return client.db('users');
+}
+
+export async function connectToMessagesDatabase() {
+    if (cachedMessagesDb) {
+        return cachedMessagesDb.db('messages');
+    }
+    const client = await MongoClient.connect(MONGO_URI_MESSAGES1!);
+    cachedMessagesDb = client;
+    return client.db('messages');
 }
