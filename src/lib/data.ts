@@ -1,6 +1,5 @@
 
 
-import { connectToFeedDatabase, connectToUsersDatabase } from './mongodb';
 import { ObjectId } from 'mongodb';
 
 
@@ -75,39 +74,27 @@ export type AdminUser = {
 }
 
 
-const serializeUserForProfile = (user: any): User | null => {
-    if (!user) return null;
-    const serialized = {
-        ...user,
-        id: user._id.toString(),
-        followers: Array.isArray(user.followers) ? user.followers.length : (user.followers || 0),
-        following: Array.isArray(user.following) ? user.following.length : (user.following || 0),
-        isVerified: user.username === 'chohanspace',
-    };
-    delete serialized._id;
-    return serialized as User;
-}
+// --- MOCKED DATA ---
 
-const serializeObject = (obj: any) => {
-    if (!obj) return null;
-    const newObj = JSON.parse(JSON.stringify(obj));
-    if (obj._id) {
-        newObj.id = obj._id.toString();
-        delete newObj._id;
-    }
-    return newObj;
-}
+const MOCK_USERS: User[] = [
+    { id: '1', username: 'chohanspace', name: 'Abdullah C', email: 'chohan@example.com', avatar: 'https://i.pravatar.cc/150?u=chohanspace', bio: 'Building the future, one line of code at a time. 🚀', posts: ['1', '2'], followers: ['2', '3'], following: ['2', '3'], saved: ['3'], isVerified: true, isPrivate: false },
+    { id: '2', username: 'janedoe', name: 'Jane Doe', email: 'jane@example.com', avatar: 'https://i.pravatar.cc/150?u=janedoe', bio: 'Just a girl who loves to travel and take photos.', posts: ['3'], followers: ['1'], following: ['1', '3'], saved: [], isPrivate: false },
+    { id: '3', username: 'bobsmith', name: 'Bob Smith', email: 'bob@example.com', avatar: 'https://i.pravatar.cc/150?u=bobsmith', bio: 'Foodie, dog lover, and part-time philosopher.', posts: [], followers: ['1', '2'], following: ['1', '2'], saved: [], isPrivate: true },
+];
+
+const MOCK_POSTS: Post[] = [
+    { id: '1', userId: '1', image: 'https://picsum.photos/600/600?random=1', caption: 'First post vibes! What a beautiful day.', likes: ['2', '3'], comments: [ { id: 'c1', userId: '2', username: 'janedoe', text: 'Love this!', createdAt: new Date() } ], createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), aiHint: 'nature landscape' },
+    { id: '2', userId: '1', image: 'https://picsum.photos/600/600?random=2', caption: 'Working on some cool new stuff for InstaNext!', likes: ['2'], comments: [], createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), aiHint: 'tech code' },
+    { id: '3', userId: '2', image: 'https://picsum.photos/600/600?random=3', caption: 'Exploring the hidden gems of the city. ✨', likes: ['1', '3'], comments: [ { id: 'c2', userId: '1', username: 'chohanspace', text: 'Looks amazing!', createdAt: new Date() } ], createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), aiHint: 'city travel' },
+];
 
 // API-like functions to fetch data - these should only be used in server components or API routes
 export const getUser = async (userId: string): Promise<User | null> => {
-  if (!ObjectId.isValid(userId)) return null;
-  const db = await connectToUsersDatabase();
-  const user = await db.collection('profiles').findOne({ _id: new ObjectId(userId) });
-  return serializeUserForProfile(user);
+  console.log(`MOCK: Fetching user with ID: ${userId}`);
+  return MOCK_USERS.find(u => u.id === userId) || null;
 }
 
 export const getFeedPosts = async (): Promise<Post[]> => {
-  const db = await connectToFeedDatabase();
-  const posts = await db.collection('posts').find().sort({ createdAt: -1 }).limit(20).toArray();
-  return posts.map(serializeObject) as Post[];
+  console.log("MOCK: Fetching feed posts");
+  return MOCK_POSTS;
 }
