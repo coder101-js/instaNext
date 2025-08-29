@@ -1,28 +1,17 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Send, User, Bot } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Search, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
-
-interface MessagePart {
-    text?: string;
-    toolRequest?: any;
-    toolResponse?: any;
-}
-
-interface Message {
-    role: "user" | "model";
-    content: MessagePart[]; 
-}
+import { useDebounce } from "@/hooks/use-debounce";
+import type { User as UserType } from "@/lib/data";
 
 interface UserCardProps {
     id: string;
@@ -49,177 +38,70 @@ const UserResultCard = ({ user }: { user: UserCardProps }) => {
 };
 
 export default function SearchPage() {
-    const { user } = useAuth();
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [input, setInput] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [results, setResults] = useState<UserType[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-    const scrollToBottom = () => {
-       if (scrollAreaRef.current) {
-            const scrollableView = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
-             if (scrollableView) {
-                scrollableView.scrollTop = scrollableView.scrollHeight;
-            }
-       }
-    };
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
-    
-    // Set initial greeting from the AI
-    useEffect(() => {
-        setMessages([
-            {
-                role: "model",
-                content: [{ text: `Hi ${user?.name || ''}! I'm InstaNext AI. How can I help you today? You can ask me to find users, like "search for chohanspace".` }]
-            }
-        ]);
-    }, [user]);
-
-    const handleSend = async () => {
-        if (input.trim() === "") return;
-
-        const userMessage: Message = { role: "user", content: [{ text: input }] };
-        const newMessages = [...messages, userMessage];
-        setMessages(newMessages);
-        setInput("");
-        setIsLoading(true);
-
-        try {
-            const response = await fetch('/api/ai/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: input,
-                    history: messages 
-                }),
-            });
-
-            if (!response.body) {
-                 throw new Error("No response body");
-            }
-            
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            
-            let modelResponse: Message = { role: 'model', content: [] };
-            setMessages(prev => [...prev, modelResponse]);
-
-            let buffer = '';
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                
-                // Process all complete lines, keep the last incomplete line in buffer
-                for (let i = 0; i < lines.length - 1; i++) {
-                    const line = lines[i].trim();
-                    if (line.startsWith('{')) {
-                       try {
-                            const parsedChunk = JSON.parse(line);
-                            
-                            setMessages(prev => {
-                                const updatedMessages = [...prev];
-                                const lastMessage = updatedMessages[updatedMessages.length - 1];
-
-                                if (parsedChunk.content) {
-                                    lastMessage.content = parsedChunk.content;
-                                }
-                                return updatedMessages;
-                            });
-
-                        } catch (e) {
-                             console.error("Error parsing chunk:", e, "Chunk:", line);
-                        }
+        if (debouncedSearchTerm && debouncedSearchTerm.length > 1) {
+            setIsLoading(true);
+            const fetchUsers = async () => {
+                try {
+                    const response = await fetch(`/api/user/search?q=${debouncedSearchTerm}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setResults(data);
+                    } else {
+                        setResults([]);
                     }
+                } catch (error) {
+                    console.error("Search error:", error);
+                    setResults([]);
+                } finally {
+                    setIsLoading(false);
                 }
-                buffer = lines[lines.length - 1];
-            }
-            
-        } catch (error) {
-            console.error("Error sending message:", error);
-            const errorMessage: Message = { role: "model", content: [{ text: "Sorry, I encountered an error. Please try again." }] };
-            setMessages(prev => [...prev.slice(0, -1), errorMessage]); // Replace the placeholder with an error
-        } finally {
+            };
+            fetchUsers();
+        } else {
+            setResults([]);
             setIsLoading(false);
         }
-    };
-    
+    }, [debouncedSearchTerm]);
+
     return (
         <div className="flex flex-col h-full max-h-[calc(100vh-80px)] sm:max-h-[calc(100vh-2rem)] sm:m-4">
-             <header className="text-center mb-4 pt-4 sm:pt-0">
+            <header className="text-center mb-4 pt-4 sm:pt-0">
                 <h1 className="text-4xl font-headline tracking-wider gradient-text sm:hidden">InstaNext</h1>
-                <h1 className="text-2xl sm:text-3xl font-bold hidden sm:block">InstaNext AI</h1>
-             </header>
-             <Card className="flex-1 flex flex-col overflow-hidden">
-                <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-                    <div className="space-y-4">
-                        {messages.map((message, index) => (
-                            <div key={index} className={cn("flex items-start gap-3", message.role === "user" ? "justify-end" : "justify-start")}>
-                                {message.role === 'model' && (
-                                    <Avatar className="w-8 h-8 bg-primary text-primary-foreground flex items-center justify-center">
-                                        <Bot className="w-5 h-5" />
-                                    </Avatar>
-                                )}
-                                <div className={cn("rounded-lg px-3 py-2 max-w-sm prose", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
-                                     {message.content.map((part, partIndex) => {
-                                        if(part.text) {
-                                            return <p key={partIndex} className="text-sm">{part.text}</p>
-                                        }
-                                        if(part.toolResponse && part.toolResponse.name === 'searchUsers') {
-                                           const users = part.toolResponse.output as UserCardProps[];
-                                           if (users.length === 0) {
-                                               return <p key={partIndex} className="text-sm">I couldn't find any users matching that search.</p>
-                                           }
-                                           return (
-                                               <div key={partIndex} className="space-y-2 mt-2">
-                                                    {users.map(u => <UserResultCard key={u.id} user={u}/>)}
-                                               </div>
-                                           )
-                                        }
-                                        return null;
-                                     })}
-                                </div>
-                                {message.role === 'user' && user && (
-                                    <Avatar className="w-8 h-8">
-                                        <AvatarImage src={user.avatar} alt={user.name} />
-                                        <AvatarFallback><User className="w-5 h-5"/></AvatarFallback>
-                                    </Avatar>
-                                )}
-                            </div>
-                        ))}
-                         {isLoading && (
-                            <div className="flex items-start gap-3 justify-start">
-                                 <Avatar className="w-8 h-8 bg-primary text-primary-foreground flex items-center justify-center">
-                                     <Bot className="w-5 h-5" />
-                                 </Avatar>
-                                 <div className="rounded-lg px-3 py-2 max-w-sm bg-secondary">
-                                      <Skeleton className="h-4 w-10 animate-bounce" />
-                                 </div>
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
-                <CardContent className="p-4 border-t">
-                     <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-bold hidden sm:block">Search</h1>
+            </header>
+            <Card className="flex-1 flex flex-col overflow-hidden">
+                <CardHeader>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey ? handleSend() : null}
-                            placeholder="Message InstaNext AI..."
-                            className="flex-1"
-                            disabled={isLoading}
+                            placeholder="Search for users..."
+                            className="pl-10"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-                            <Send className="h-4 w-4" />
-                            <span className="sr-only">Send</span>
-                        </Button>
-                    </form>
-                </CardContent>
+                    </div>
+                </CardHeader>
+                <ScrollArea className="flex-1 px-4">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-full py-10">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : results.length > 0 ? (
+                        <div className="space-y-1">
+                            {results.map(user => <UserResultCard key={user.id} user={user} />)}
+                        </div>
+                    ) : (
+                         <div className="text-center py-10 text-muted-foreground">
+                           {debouncedSearchTerm.length > 1 ? <p>No users found for &quot;{debouncedSearchTerm}&quot;.</p> : <p>Search for people on InstaNext.</p> }
+                        </div>
+                    )}
+                </ScrollArea>
             </Card>
         </div>
     );
