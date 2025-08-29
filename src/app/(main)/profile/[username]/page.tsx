@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post, User } from "@/lib/data";
+import { VerifiedBadge } from "@/components/verified-badge";
 
 function ThemeToggle() {
     const { theme, setTheme } = useTheme();
@@ -85,10 +86,13 @@ export default function ProfilePage() {
                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-4 text-center sm:text-left">
-                    <div className="flex items-center gap-4 justify-center sm:justify-start">
+                    <div className="flex items-center gap-2 justify-center sm:justify-start">
                         <h1 className="text-2xl font-light">{user.username}</h1>
-                        <ProfileEditButton user={user} />
-                        <ThemeToggle />
+                        {user.isVerified && <VerifiedBadge />}
+                        <div className="flex items-center gap-2">
+                          <ProfileEditButton user={user} />
+                          <ThemeToggle />
+                        </div>
                     </div>
                     <div className="flex gap-8 text-sm justify-center sm:justify-start">
                         <p><span className="font-semibold">{userPosts.length}</span> posts</p>

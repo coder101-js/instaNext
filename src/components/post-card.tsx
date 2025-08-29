@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -11,6 +12,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
 import { formatDistanceToNow } from "date-fns";
+import { VerifiedBadge } from "./verified-badge";
+import { cn } from "@/lib/utils";
 
 interface PostCardProps {
   post: Post;
@@ -52,7 +55,10 @@ export function PostCard({ post, author }: PostCardProps) {
   };
 
   return (
-    <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x">
+    <Card className={cn(
+      "rounded-none sm:rounded-lg border-x-0 sm:border-x",
+       author.isVerified && "border-0 sm:border-2 sm:border-transparent sm:gradient-ring"
+      )}>
       <CardHeader className="flex flex-row items-center gap-3 p-3">
         <Link href={`/profile/${author.username}`}>
           <Avatar className="h-8 w-8">
@@ -60,12 +66,13 @@ export function PostCard({ post, author }: PostCardProps) {
             <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
           </Avatar>
         </Link>
-        <div className="flex items-baseline gap-2">
+        <div className="flex items-center gap-1.5">
             <Link href={`/profile/${author.username}`} className="font-semibold text-sm hover:underline">
             {author.username}
             </Link>
-            <span className="text-muted-foreground text-xs">· {formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
+            {author.isVerified && <VerifiedBadge className="w-4 h-4" />}
         </div>
+         <span className="text-muted-foreground text-xs">· {formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
         <Button variant="ghost" size="icon" className="ml-auto h-8 w-8">
           <MoreHorizontal className="h-4 w-4" />
           <span className="sr-only">More options</span>

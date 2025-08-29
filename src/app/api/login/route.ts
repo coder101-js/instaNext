@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
         followers: Array.isArray(userProfile.followers) ? userProfile.followers : [],
         following: Array.isArray(userProfile.following) ? userProfile.following : [],
         saved: userProfile.saved || [],
+        isVerified: userProfile.username === 'chohanspace',
     };
 
     // Sign a JWT token

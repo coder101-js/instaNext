@@ -20,6 +20,7 @@ export type User = {
   followers: string[] | number; // Can be array of IDs or a count
   following: string[] | number; // Can be array of IDs or a count
   saved: string[];
+  isVerified?: boolean;
 };
 
 export type Post = {
@@ -63,6 +64,7 @@ const serializeUserForProfile = (user: any): User | null => {
         id: user._id.toString(),
         followers: Array.isArray(user.followers) ? user.followers.length : (user.followers || 0),
         following: Array.isArray(user.following) ? user.following.length : (user.following || 0),
+        isVerified: user.username === 'chohanspace',
     };
     delete serialized._id;
     return serialized as User;
