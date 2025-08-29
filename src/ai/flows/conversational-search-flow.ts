@@ -12,7 +12,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { connectToUsersDatabase } from '@/lib/mongodb';
-import { User } from '@/lib/data';
 
 // Define the tool for searching users
 const searchUsersTool = ai.defineTool(
@@ -52,7 +51,9 @@ const ConversationalSearchInputSchema = z.object({
     history: z.array(z.object({
         role: z.enum(['user', 'model']),
         content: z.array(z.object({
-            text: z.string()
+            text: z.string().optional(),
+            toolRequest: z.any().optional(),
+            toolResponse: z.any().optional(),
         }))
     })).describe("The conversation history."),
     prompt: z.string().describe("The user's latest prompt."),
@@ -62,11 +63,16 @@ export type ConversationalSearchInput = z.infer<typeof ConversationalSearchInput
 // The output will be a stream, so we don't define a specific output schema for the flow itself
 export async function conversationalSearch(input: ConversationalSearchInput) {
 
-    const model = ai.getGenerator('gemini-2.5-flash');
+    const model = ai.getGenerator('gemini-1.5-flash');
 
     const history = input.history.map(msg => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content.map(part => {
+             if(part.text) return { text: part.text };
+             if(part.toolRequest) return { toolRequest: part.toolRequest };
+             if(part.toolResponse) return { toolResponse: part.toolResponse };
+             return { text: '' };
+        }).filter(Boolean)
     }));
 
     return model.generateStream({

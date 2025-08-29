@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -13,9 +13,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface MessagePart {
+    text?: string;
+    toolRequest?: any;
+    toolResponse?: any;
+}
+
 interface Message {
     role: "user" | "model";
-    content: any[]; // Can be string for user, or more complex for model
+    content: MessagePart[]; 
 }
 
 interface UserCardProps {
@@ -51,7 +57,7 @@ export default function SearchPage() {
 
     const scrollToBottom = () => {
        if (scrollAreaRef.current) {
-            const scrollableView = scrollAreaRef.current.children[0].children[0];
+            const scrollableView = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
              if (scrollableView) {
                 scrollableView.scrollTop = scrollableView.scrollHeight;
             }
@@ -76,23 +82,18 @@ export default function SearchPage() {
         if (input.trim() === "") return;
 
         const userMessage: Message = { role: "user", content: [{ text: input }] };
-        setMessages(prev => [...prev, userMessage]);
+        const newMessages = [...messages, userMessage];
+        setMessages(newMessages);
         setInput("");
         setIsLoading(true);
 
-        // Prepare history for the API call
-        const historyForApi = messages.map(msg => ({
-            role: msg.role,
-            content: msg.content.filter(c => typeof c.text === 'string') // only send text parts to history
-        }));
-        
         try {
             const response = await fetch('/api/ai/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: input,
-                    history: historyForApi
+                    history: messages 
                 }),
             });
 
@@ -102,8 +103,8 @@ export default function SearchPage() {
             
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
+            
             let modelResponse: Message = { role: 'model', content: [] };
-
             setMessages(prev => [...prev, modelResponse]);
 
             while (true) {
@@ -111,18 +112,17 @@ export default function SearchPage() {
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                const lines = chunk.split('\n').filter(line => line.trim().startsWith('{'));
                 
                 for (const line of lines) {
                     try {
                         const parsedChunk = JSON.parse(line);
                         
                         setMessages(prev => {
-                            const newMessages = [...prev];
-                            const lastMessage = newMessages[newMessages.length - 1];
-                            
-                             if (parsedChunk.content) {
-                                // This is a new way Genkit streams. The content part might be a tool call or final text.
+                            const updatedMessages = [...prev];
+                            const lastMessage = updatedMessages[updatedMessages.length - 1];
+
+                            if (parsedChunk.content) {
                                 for (const part of parsedChunk.content) {
                                     if (part.text) {
                                          const existingTextPart = lastMessage.content.find(p => p.text !== undefined);
@@ -131,15 +131,12 @@ export default function SearchPage() {
                                          } else {
                                             lastMessage.content.push({ text: part.text });
                                          }
-                                    } else if (part.toolRequest) {
-                                        // We don't display the tool request, but we could if we wanted to show the AI's "thinking" process.
-                                        // The tool's output will be streamed back as a separate content part.
                                     } else if (part.toolResponse) {
                                         lastMessage.content.push({ toolResponse: part.toolResponse });
                                     }
                                 }
                             }
-                            return newMessages;
+                            return updatedMessages;
                         });
 
                     } catch (e) {
@@ -151,7 +148,7 @@ export default function SearchPage() {
         } catch (error) {
             console.error("Error sending message:", error);
             const errorMessage: Message = { role: "model", content: [{ text: "Sorry, I encountered an error. Please try again." }] };
-            setMessages(prev => [...prev, errorMessage]);
+            setMessages(prev => [...prev.slice(0, -1), errorMessage]); // Replace the placeholder with an error
         } finally {
             setIsLoading(false);
         }
@@ -217,6 +214,7 @@ export default function SearchPage() {
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey ? handleSend() : null}
                             placeholder="Message InstaNext AI..."
                             className="flex-1"
                             disabled={isLoading}
@@ -231,4 +229,3 @@ export default function SearchPage() {
         </div>
     );
 }
-

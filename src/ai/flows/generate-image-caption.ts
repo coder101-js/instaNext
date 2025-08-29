@@ -4,7 +4,7 @@
  * @fileOverview Generates captions for images using a generative AI model.
  *
  * - generateImageCaption - A function that generates caption suggestions for an image.
- * - GenerateImageCaptionInput - The input type for the generateImageCaption function.
+ * - GenerateImageCaptionInput - The input type for the generateImagecaption function.
  * - GenerateImageCaptionOutput - The return type for the generateImageCaption function.
  */
 
