@@ -32,8 +32,8 @@ export default async function ProfilePage({ params }: { params: { username: stri
           </div>
           <div className="flex gap-8 text-sm justify-center sm:justify-start">
             <p><span className="font-semibold">{userPosts.length}</span> posts</p>
-            <p><span className="font-semibold">{user.followers.toLocaleString()}</span> followers</p>
-            <p><span className="font-semibold">{user.following.toLocaleString()}</span> following</p>
+            <p><span className="font-semibold">{(user.followers || 0).toLocaleString()}</span> followers</p>
+            <p><span className="font-semibold">{(user.following || 0).toLocaleString()}</span> following</p>
           </div>
           <div>
             <h2 className="font-semibold text-sm">{user.name}</h2>
@@ -57,4 +57,3 @@ export default async function ProfilePage({ params }: { params: { username: stri
     </div>
   );
 }
-

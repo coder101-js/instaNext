@@ -16,8 +16,8 @@ export type User = {
   avatar: string;
   bio: string;
   posts: string[];
-  followers: string[]; // Changed to array of user IDs
-  following: string[]; // Changed to array of user IDs
+  followers: string[] | number; // Can be array of IDs or a count
+  following: string[] | number; // Can be array of IDs or a count
   saved: string[];
   profileSetupComplete: boolean;
 };
@@ -74,8 +74,8 @@ const serializeUserForProfile = (user: any) => {
     const serialized = {
         ...user,
         id: user._id.toString(),
-        followers: user.followers.length,
-        following: user.following.length,
+        followers: Array.isArray(user.followers) ? user.followers.length : (user.followers || 0),
+        following: Array.isArray(user.following) ? user.following.length : (user.following || 0),
     };
     delete serialized._id;
     return serialized;
