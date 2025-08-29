@@ -16,26 +16,80 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/auth-context";
 import { User } from "@/lib/data";
-import { useState } from "react";
+import { useState, useOptimistic, startTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera } from "lucide-react";
 
+async function followUser(userIdToFollow: string) {
+  const userPayload = localStorage.getItem('insta-user');
+  const response = await fetch('/api/user/follow', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Payload': userPayload || '',
+    },
+    body: JSON.stringify({ userIdToFollow }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to follow user.');
+  }
+  return response.json();
+}
+
 export function ProfileEditButton({ user }: { user: User }) {
   const { user: currentUser, setUser: setAuthUser } = useAuth();
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const router = useRouter();
+
+  // Optimistic UI for following
+  const [optimisticIsFollowing, setOptimisticIsFollowing] = useOptimistic(
+    currentUser?.following.includes(user.id),
+    (state, isFollowing) => isFollowing as boolean
+  );
+  
+  const handleFollow = async () => {
+    startTransition(() => {
+      setOptimisticIsFollowing(!optimisticIsFollowing);
+    });
+    try {
+      const { updatedCurrentUser } = await followUser(user.id);
+      // Update user in auth context and localStorage
+      setAuthUser(updatedCurrentUser);
+      localStorage.setItem('insta-user', JSON.stringify(updatedCurrentUser));
+      router.refresh(); // Refresh the page to show new follower count
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Error", description: "Could not follow user." });
+      // Revert optimistic update
+       setOptimisticIsFollowing(optimisticIsFollowing);
+    }
+  };
+
+  if (currentUser?.id === user.id) {
+    return <EditProfileDialog user={user} open={open} setOpen={setOpen} />;
+  }
+
+  return (
+    <Button variant={optimisticIsFollowing ? "secondary" : "default"} size="sm" onClick={handleFollow}>
+      {optimisticIsFollowing ? "Unfollow" : "Follow"}
+    </Button>
+  );
+}
+
+
+function EditProfileDialog({ user, open, setOpen }: { user: User, open: boolean, setOpen: (o: boolean) => void}) {
+  const { setUser: setAuthUser } = useAuth();
   const [name, setName] = useState(user.name);
   const [bio, setBio] = useState(user.bio);
   const [avatarPreview, setAvatarPreview] = useState(user.avatar);
   const [avatarDataUri, setAvatarDataUri] = useState<string | null>(user.avatar);
   const [isLoading, setIsLoading] = useState(false);
-  const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-
-  if (currentUser?.id !== user.id) {
-    return <Button variant="secondary" size="sm">Follow</Button>;
-  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,11 +108,7 @@ export function ProfileEditButton({ user }: { user: User }) {
     setIsLoading(true);
 
     try {
-      const profileData = {
-          name,
-          bio,
-          avatar: avatarDataUri
-      }
+      const profileData = { name, bio, avatar: avatarDataUri };
       const userPayload = localStorage.getItem('insta-user');
 
       const response = await fetch("/api/user/profile", {
@@ -153,3 +203,4 @@ export function ProfileEditButton({ user }: { user: User }) {
     </Dialog>
   );
 }
+

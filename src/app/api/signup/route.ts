@@ -64,10 +64,10 @@ export async function POST(req: NextRequest) {
         avatar: `https://i.pravatar.cc/150?u=${email}`,
         bio: "",
         posts: [],
-        followers: 0,
-        following: 0,
+        followers: [],
+        following: [],
         saved: [],
-        profileSetupComplete: false, // User needs to complete profile setup
+        profileSetupComplete: true, // User profile setup is no longer required
     };
 
     await profilesCollection.insertOne({ _id: authResult.insertedId, ...newUserProfile });

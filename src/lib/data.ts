@@ -1,3 +1,4 @@
+
 import { connectToFeedDatabase, connectToUsersDatabase } from './mongodb';
 import { ObjectId } from 'mongodb';
 
@@ -15,8 +16,8 @@ export type User = {
   avatar: string;
   bio: string;
   posts: string[];
-  followers: number;
-  following: number;
+  followers: string[]; // Changed to array of user IDs
+  following: string[]; // Changed to array of user IDs
   saved: string[];
   profileSetupComplete: boolean;
 };
@@ -56,12 +57,28 @@ export type Conversation = {
 
 const serializeObject = (obj: any) => {
     if (!obj) return null;
-    const newObj = JSON.parse(JSON.stringify(obj));
+    const newObj = JSON.parse(JSON.stringify(obj, (key, value) => key === 'followers' || key === 'following' ? value.length : value ));
     if (obj._id) {
         newObj.id = obj._id.toString();
         delete newObj._id;
     }
+    // ensure followers and following are arrays of strings (ids) for the client if needed, or counts
+    if (obj.followers) newObj.followers = Array.isArray(obj.followers) ? obj.followers.map(String) : [];
+    if (obj.following) newObj.following = Array.isArray(obj.following) ? obj.following.map(String) : [];
+
     return newObj;
+}
+
+const serializeUserForProfile = (user: any) => {
+    if (!user) return null;
+    const serialized = {
+        ...user,
+        id: user._id.toString(),
+        followers: user.followers.length,
+        following: user.following.length,
+    };
+    delete serialized._id;
+    return serialized;
 }
 
 
@@ -70,13 +87,13 @@ export const getUser = async (userId: string): Promise<User | null> => {
   if (!ObjectId.isValid(userId)) return null;
   const db = await connectToUsersDatabase();
   const user = await db.collection('profiles').findOne({ _id: new ObjectId(userId) });
-  return serializeObject(user);
+  return serializeUserForProfile(user);
 }
 
 export const getUserByUsername = async (username: string): Promise<User | null> => {
    const db = await connectToUsersDatabase();
    const user = await db.collection('profiles').findOne({ username });
-   return serializeObject(user);
+   return serializeUserForProfile(user);
 }
 
 export const getPost = async (postId: string): Promise<Post | null> => {
@@ -99,12 +116,14 @@ export const getFeedPosts = async (): Promise<Post[]> => {
 }
 
 export const getSavedPosts = async (userId: string): Promise<Post[]> => {
-  const user = await getUser(userId);
-  if (!user || user.saved.length === 0) return [];
+  const db = await connectToUsersDatabase();
+  const userDoc = await db.collection('profiles').findOne({_id: new ObjectId(userId)});
+
+  if (!userDoc || !userDoc.saved || userDoc.saved.length === 0) return [];
   
-  const db = await connectToFeedDatabase();
-  const postIds = user.saved.map(id => new ObjectId(id));
-  const posts = await db.collection('posts').find({ _id: { $in: postIds } }).sort({ createdAt: -1 }).toArray();
+  const feedDb = await connectToFeedDatabase();
+  const postIds = userDoc.saved.map((id: string) => new ObjectId(id));
+  const posts = await feedDb.collection('posts').find({ _id: { $in: postIds } }).sort({ createdAt: -1 }).toArray();
   
   return posts.map(serializeObject) as Post[];
 }

@@ -57,3 +57,4 @@ export default async function ProfilePage({ params }: { params: { username: stri
     </div>
   );
 }
+
